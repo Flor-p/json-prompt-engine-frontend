@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3001';
+const API_URL = 'https://json-prompt-engine-backend-production.up.railway.app';
 
 // ===== PROMPTS =====
 export const apiGetPrompts = async () => {
