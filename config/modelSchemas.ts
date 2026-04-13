@@ -144,7 +144,7 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
   },
   {
     id: 'stable-diffusion',
-    name: 'Stable Diffusion (AUTOMATIC1111)',
+    name: 'Stable Diffusion',
     tab: 'image',
     fields: [
       {
@@ -686,6 +686,204 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         type: 'checkbox',
         defaultValue: true,
         description: 'Auto-enhance prompt quality'
+      }
+    ]
+  },
+  {
+    id: 'seedance-2',
+    name: 'Seedance 2.0',
+    tab: 'video',
+    fields: [
+      {
+        name: 'subject',
+        label: 'Subject',
+        type: 'textarea',
+        defaultValue: '',
+        placeholder: 'Who or what the scene is about...',
+        description: 'Who or what the scene is about'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., walks, leaps, turns',
+        description: 'What the subject is doing, one clear verb'
+      },
+      {
+        name: 'camera',
+        label: 'Camera',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., slow dolly-in, medium shot, eye level',
+        description: 'Shot size + movement + angle'
+      },
+      {
+        name: 'scene',
+        label: 'Scene',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., rainy Tokyo street, neon reflections, midnight',
+        description: 'Location, lighting, atmosphere'
+      },
+      {
+        name: 'style',
+        label: 'Style',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., cinematic, Blade Runner color palette',
+        description: 'Visual style, film reference, color treatment'
+      },
+      {
+        name: 'negative_prompt',
+        label: 'Negative Prompt',
+        type: 'textarea',
+        defaultValue: '',
+        placeholder: 'e.g., jitter, bent limbs, blur',
+        description: 'What to avoid'
+      },
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '5s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds' }
+        ],
+        description: 'Video length'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: [
+          { value: '16:9', label: '16:9 (Landscape)' },
+          { value: '9:16', label: '9:16 (Portrait)' },
+          { value: '1:1', label: '1:1 (Square)' }
+        ],
+        description: 'Video aspect ratio'
+      },
+      {
+        name: 'reference_image',
+        label: 'Reference Image',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'Optional: URL or @Image1 reference',
+        description: 'Optional URL or @Image1 reference'
+      }
+    ]
+  },
+  {
+    id: 'kling-3',
+    name: 'Kling 3.0',
+    tab: 'video',
+    fields: [
+      {
+        name: 'subject',
+        label: 'Subject',
+        type: 'textarea',
+        defaultValue: '',
+        placeholder: 'Who or what the scene is about...',
+        description: 'Who or what the scene is about'
+      },
+      {
+        name: 'action',
+        label: 'Action',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., walks slowly, leaps forward',
+        description: 'What the subject is doing'
+      },
+      {
+        name: 'camera',
+        label: 'Camera',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., wide shot, slow dolly-in, low angle',
+        description: 'Shot size + movement + angle'
+      },
+      {
+        name: 'scene',
+        label: 'Scene',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., misty forest, golden hour, foggy atmosphere',
+        description: 'Location + lighting + atmosphere'
+      },
+      {
+        name: 'style',
+        label: 'Style',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'e.g., cinematic, hyperrealistic, film noir',
+        description: 'Visual style'
+      },
+      {
+        name: 'negative_prompt',
+        label: 'Negative Prompt',
+        type: 'textarea',
+        defaultValue: '',
+        placeholder: 'e.g., blur, jitter, distorted limbs',
+        description: 'What to avoid'
+      },
+      {
+        name: 'mode',
+        label: 'Mode',
+        type: 'select',
+        defaultValue: 'standard',
+        options: [
+          { value: 'standard', label: 'Standard' },
+          { value: 'pro', label: 'Pro' }
+        ],
+        description: 'Generation mode'
+      },
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '5s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds' }
+        ],
+        description: 'Video length'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: [
+          { value: '16:9', label: '16:9 (Landscape)' },
+          { value: '9:16', label: '9:16 (Portrait)' },
+          { value: '1:1', label: '1:1 (Square)' }
+        ],
+        description: 'Video aspect ratio'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '1080p', label: '1080p' },
+          { value: '4K', label: '4K' }
+        ],
+        description: 'Output resolution'
+      },
+      {
+        name: 'cfg_scale',
+        label: 'CFG Scale',
+        type: 'slider',
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        step: 0.1,
+        description: 'Prompt adherence (0–1)'
       }
     ]
   }

@@ -4,6 +4,8 @@ import { transformGemini } from './gemini';
 import { transformSora } from './sora';
 import { transformRunwayGen4 } from './runwayGen4';
 import { transformLumaDreamMachine } from './lumaDreamMachine';
+import { transformSeedance } from './seedance';
+import { transformKling } from './kling';
 
 type TransformerFunction = (data: Record<string, any>) => string;
 
@@ -15,6 +17,8 @@ const transformers: Record<string, TransformerFunction> = {
   'sora': transformSora,
   'runway-gen4': transformRunwayGen4,
   'luma-dream-machine': transformLumaDreamMachine,
+  'seedance-2': transformSeedance,
+  'kling-3': transformKling,
 };
 
 export function getTransformer(modelId: string): TransformerFunction {
