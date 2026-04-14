@@ -100,8 +100,8 @@ export function PresetsManager({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Upload className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs md:h-9 md:gap-2 md:px-3 md:text-sm">
+          <Upload className="h-3 w-3 md:h-4 md:w-4" />
           Presets
         </Button>
       </DialogTrigger>

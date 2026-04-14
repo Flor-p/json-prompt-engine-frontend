@@ -8,9 +8,10 @@ interface OutputDisplayProps {
   output: string;
   jsonData: Record<string, any>;
   modelName: string;
+  compact?: boolean;
 }
 
-export function OutputDisplay({ output, jsonData, modelName }: OutputDisplayProps) {
+export function OutputDisplay({ output, jsonData, modelName, compact = false }: OutputDisplayProps) {
   const hasOutput = output && output !== 'Empty prompt';
 
   const getFilename = (ext: string) => {
@@ -70,26 +71,30 @@ export function OutputDisplay({ output, jsonData, modelName }: OutputDisplayProp
             <Copy className="h-3 w-3 mr-1" />
             Copy
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={exportAsTxt}
-            disabled={!hasOutput}
-            className="h-8 text-xs"
-          >
-            <Download className="h-3 w-3 mr-1" />
-            TXT
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={exportAsJson}
-            disabled={!hasOutput}
-            className="h-8 text-xs"
-          >
-            <FileJson className="h-3 w-3 mr-1" />
-            JSON
-          </Button>
+          {!compact && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportAsTxt}
+                disabled={!hasOutput}
+                className="h-8 text-xs"
+              >
+                <Download className="h-3 w-3 mr-1" />
+                TXT
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={exportAsJson}
+                disabled={!hasOutput}
+                className="h-8 text-xs"
+              >
+                <FileJson className="h-3 w-3 mr-1" />
+                JSON
+              </Button>
+            </>
+          )}
         </div>
       </div>
       <div className="flex-1 bg-zinc-900 border border-zinc-700 rounded-md p-4 overflow-auto">

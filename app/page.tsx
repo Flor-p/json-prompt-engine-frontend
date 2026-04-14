@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePromptStore } from '@/lib/store';
 import { getModelsByTab, getModelById } from '@/config/modelSchemas';
 import { transformData } from '@/lib/transformers';
@@ -18,11 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Code } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Toaster } from '@/components/ui/sonner';
 
 export default function Home() {
+  const [showJson, setShowJson] = useState(false);
+
   const {
     activeTab,
     activeModel,
@@ -86,13 +88,19 @@ export default function Home() {
   className="h-12 w-12 object-contain"
 />
               <h1
-                className="text-2xl text-zinc-900 dark:text-zinc-100"
+                className="text-zinc-900 dark:text-zinc-100"
                 style={{ fontFamily: 'var(--font-bungee)' }}
               >
-                JSON Prompt Engine
+                {/* Mobile: two lines */}
+                <span className="md:hidden">
+                  <span className="block text-sm leading-tight">JSON PROMPT</span>
+                  <span className="block text-sm leading-tight">ENGINE</span>
+                </span>
+                {/* Tablet + Desktop: single line */}
+                <span className="hidden md:block text-2xl">JSON Prompt Engine</span>
               </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <PresetsManager
                 currentModel={activeModel}
                 currentTab={activeTab}
@@ -105,9 +113,9 @@ export default function Home() {
                 variant="outline"
                 size="sm"
                 onClick={resetToDefaults}
-                className="gap-2"
+                className="h-7 gap-1 px-2 text-xs md:h-9 md:gap-2 md:px-3 md:text-sm"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="h-3 w-3 md:h-4 md:w-4" />
                 Reset
               </Button>
             </div>
@@ -115,8 +123,8 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-6">
-        <div className="mb-6 flex items-center gap-4">
+      <div className="container mx-auto px-6 py-6 pb-36 md:pb-6">
+        <div className="mb-6 flex items-center gap-4 flex-wrap">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'image' | 'video')}>
             <TabsList className="bg-zinc-200 dark:bg-zinc-900">
               <TabsTrigger value="image">Image</TabsTrigger>
@@ -125,7 +133,7 @@ export default function Home() {
           </Tabs>
 
           <Select value={activeModel} onValueChange={setActiveModel}>
-            <SelectTrigger className="w-[280px] bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
+            <SelectTrigger className="w-[200px] sm:w-[280px] bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
@@ -136,11 +144,23 @@ export default function Home() {
               ))}
             </SelectContent>
           </Select>
+
+          <button
+            onClick={() => setShowJson((v) => !v)}
+            className="lg:hidden ml-auto flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <Code className="h-3 w-3" />
+            {showJson ? 'Hide JSON' : 'Advanced'}
+          </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 h-[calc(100vh-240px)]">
-          <div className="bg-card border border-border rounded-lg p-6 overflow-auto">
-            <h2 className="text-lg font-semibold mb-4 text-zinc-800 dark:text-zinc-200">
+        {/* Panels — DOM order: Fields → Output → JSON so that on tablet (2-col)
+            Fields+Output share row 1 and JSON (when toggled) spans row 2.
+            On desktop the order is reset to Fields | JSON | Output via lg:order-* */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:h-[calc(100vh-240px)]">
+          {/* Fields */}
+          <div className="order-1 lg:order-1 min-h-[250px] overflow-auto rounded-lg border border-border bg-card p-6 lg:min-h-0">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
               Fields
             </h2>
             {currentModelSchema && (
@@ -157,22 +177,37 @@ export default function Home() {
             )}
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-6 overflow-hidden">
-            <JsonEditor
-              value={currentData}
-              onChange={setCurrentData}
-              onError={setJsonError}
-            />
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-6 overflow-hidden">
+          {/* Output — hidden on mobile (rendered as fixed bottom bar instead); visible md+ */}
+          <div className="hidden md:block order-2 lg:order-3 min-h-[200px] overflow-hidden rounded-lg border border-border bg-card p-6 lg:min-h-0">
             <OutputDisplay
               output={outputText}
               jsonData={currentData}
               modelName={activeModel}
             />
           </div>
+
+          {/* JSON Editor — hidden on mobile/tablet unless toggled; always visible on desktop */}
+          <div
+            className={`order-3 lg:order-2 min-h-[250px] overflow-hidden rounded-lg border border-border bg-card p-6 lg:min-h-0 md:col-span-2 lg:col-span-1 ${
+              showJson ? 'block' : 'hidden lg:block'
+            }`}
+          >
+            <JsonEditor
+              value={currentData}
+              onChange={setCurrentData}
+              onError={setJsonError}
+            />
+          </div>
         </div>
+      </div>
+      {/* Mobile-only sticky bottom bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/80 backdrop-blur-md px-4 py-2 max-h-[120px] overflow-y-auto">
+        <OutputDisplay
+          output={outputText}
+          jsonData={currentData}
+          modelName={activeModel}
+          compact
+        />
       </div>
     </div>
   );

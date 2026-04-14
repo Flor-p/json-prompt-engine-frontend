@@ -25,7 +25,7 @@ export function ThemeToggle() {
         console.log('clicking, current resolvedTheme:', resolvedTheme);
         setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
       }}
-      className="h-8 w-8 p-0"
+      className="h-7 w-7 p-0 md:h-8 md:w-8"
     >
 {resolvedTheme === 'dark' ? (
   <Moon className="h-4 w-4" />
