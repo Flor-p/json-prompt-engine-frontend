@@ -1,7 +1,6 @@
 import { transformMidjourney } from './midjourney';
 import { transformStableDiffusion } from './stableDiffusion';
 import { transformGemini } from './gemini';
-import { transformSora } from './sora';
 import { transformRunwayGen4 } from './runwayGen4';
 import { transformLumaDreamMachine } from './lumaDreamMachine';
 import { transformSeedance } from './seedance';
@@ -14,7 +13,6 @@ const transformers: Record<string, TransformerFunction> = {
   'stable-diffusion': transformStableDiffusion,
   'gemini-2.5-pro': transformGemini,
   'gemini-2.5-flash': transformGemini,
-  'sora': transformSora,
   'runway-gen4': transformRunwayGen4,
   'luma-dream-machine': transformLumaDreamMachine,
   'seedance-2': transformSeedance,
