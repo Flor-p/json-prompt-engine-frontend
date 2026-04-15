@@ -212,6 +212,27 @@ export default function Home() {
           compact
         />
       </div>
+
+      <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
+        Built by Flor Paramidani ·{' '}
+        <a
+          href="https://www.linkedin.com/in/florpara/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:opacity-70"
+        >
+          LinkedIn ↗
+        </a>
+        {' · '}
+        <a
+          href="mailto:florparamidani@gmail.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:opacity-70"
+        >
+          florparamidani@gmail.com
+        </a>
+      </footer>
     </div>
   );
 }
