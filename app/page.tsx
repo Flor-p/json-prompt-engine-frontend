@@ -77,16 +77,18 @@ export default function Home() {
 
       <header className="border-b border-border bg-card backdrop-blur">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          {/* Mobile: two rows. Tablet+Desktop: single row */}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-0">
+            {/* Row 1 (mobile) / Left side (md+): logo + title */}
             <div className="flex items-center gap-3">
               <video
-  src="/esphere.mp4"
-  autoPlay
-  loop
-  muted
-  playsInline
-  className="h-12 w-12 object-contain"
-/>
+                src="/esphere.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="h-12 w-12 object-contain"
+              />
               <h1
                 className="text-zinc-900 dark:text-zinc-100"
                 style={{ fontFamily: 'var(--font-bungee)' }}
@@ -100,7 +102,8 @@ export default function Home() {
                 <span className="hidden md:block text-2xl">JSON Prompt Engine</span>
               </h1>
             </div>
-            <div className="flex items-center gap-2 md:gap-4">
+            {/* Row 2 (mobile) / Right side (md+): action buttons */}
+            <div className="flex items-center justify-between gap-2 md:justify-end md:gap-4">
               <PresetsManager
                 currentModel={activeModel}
                 currentTab={activeTab}
