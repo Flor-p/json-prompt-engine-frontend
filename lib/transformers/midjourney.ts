@@ -44,6 +44,6 @@ export function transformMidjourney(data: Record<string, any>): string {
   }
 
   return prompt
-    ? `/imagine prompt: ${prompt}`
-    : `/imagine prompt: [empty]`;
+    ? prompt
+    : '[empty]';
 }
