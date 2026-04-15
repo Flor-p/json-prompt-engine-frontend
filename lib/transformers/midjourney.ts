@@ -31,8 +31,8 @@ export function transformMidjourney(data: Record<string, any>): string {
     params.push(`--seed ${data.seed}`);
   }
 
-  if (data.stop !== undefined && data.stop !== 100) {
-    params.push(`--stop ${data.stop}`);
+  if (data.sref) {
+    params.push(`--sref ${data.sref}`);
   }
 
   if (data.negative) {

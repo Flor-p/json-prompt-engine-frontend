@@ -131,14 +131,12 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         description: 'Random seed for reproducibility'
       },
       {
-        name: 'stop',
-        label: 'Stop (--stop)',
-        type: 'slider',
-        defaultValue: 100,
-        min: 10,
-        max: 100,
-        step: 10,
-        description: 'Stop generation early (10-100)'
+        name: 'sref',
+        label: 'Style Reference (--sref)',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'Paste image URL...',
+        description: 'Style reference image URL'
       }
     ]
   },
