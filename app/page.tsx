@@ -225,6 +225,15 @@ export default function Home() {
         </a>
         {' · '}
         <a
+          href="https://github.com/Flor-p"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:opacity-70"
+        >
+          GitHub ↗
+        </a>
+        {' · '}
+        <a
           href="mailto:florparamidani@gmail.com"
           target="_blank"
           rel="noopener noreferrer"
