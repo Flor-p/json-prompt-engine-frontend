@@ -21,6 +21,7 @@ import {
 import { RotateCcw, Code } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Toaster } from '@/components/ui/sonner';
+import { PromptChatbot } from '@/components/PromptChatbot';
 
 export default function Home() {
   const [showJson, setShowJson] = useState(false);
@@ -61,6 +62,12 @@ export default function Home() {
 
   const handleLoadPreset = (data: Record<string, any>) => {
     setCurrentData(data);
+  };
+
+  const handleApplyFields = (fields: Record<string, any>) => {
+    Object.entries(fields).forEach(([key, value]) => {
+      updateField(key, value);
+    });
   };
 
   const handleLoadHistory = (entry: HistoryEntry) => {
@@ -212,6 +219,12 @@ export default function Home() {
           compact
         />
       </div>
+
+      <PromptChatbot
+        activeModel={activeModel}
+        currentModelSchema={currentModelSchema}
+        onApplyFields={handleApplyFields}
+      />
 
       <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
         JSON Prompt Engine v1.0.0 · Built by Flor Paramidani ·{' '}
