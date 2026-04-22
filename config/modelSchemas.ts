@@ -89,19 +89,20 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         ],
         description: 'Image aspect ratio'
       },
-  {
-      name: 'v',
-      label: 'Version (--v)',
-      type: 'select',
-      defaultValue: '7',
-      options: [
-     { value: '8', label: 'V8 (coming soon)' },
-     { value: '7', label: 'V7' },
-     { value: '6.1', label: 'V6.1' },
-      { value: '6', label: 'V6' }
-    ],
-    description: 'Midjourney version'
-  },
+      {
+        name: 'v',
+        label: 'Version (--v)',
+        type: 'select',
+        defaultValue: '8.1',
+        options: [
+          { value: '8.1', label: 'V8.1' },
+          { value: '8.0', label: 'V8.0' },
+          { value: '7', label: 'V7' },
+          { value: '6.1', label: 'V6.1' },
+          { value: '6', label: 'V6' }
+        ],
+        description: 'Midjourney version'
+      },
       {
         name: 'stylize',
         label: 'Stylize (--stylize)',
@@ -137,6 +138,31 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         defaultValue: '',
         placeholder: 'Paste image URL...',
         description: 'Style reference image URL'
+      },
+      {
+        name: 'image_prompt',
+        label: 'Image Prompt URL',
+        type: 'text',
+        defaultValue: '',
+        placeholder: 'Paste image URL for image prompting',
+        description: 'Image prompt reference'
+      },
+      {
+        name: 'iw',
+        label: 'Image Weight (--iw)',
+        type: 'slider',
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        step: 0.25,
+        description: 'Image prompt weight (0-2)'
+      },
+      {
+        name: 'hd_mode',
+        label: 'HD Mode',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Run in HD mode (3x faster in V8.1)'
       }
     ]
   },

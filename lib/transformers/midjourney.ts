@@ -1,6 +1,7 @@
 export function transformMidjourney(data: Record<string, any>): string {
   const parts: string[] = [];
 
+  if (data.image_prompt) parts.push(data.image_prompt);
   if (data.subject) parts.push(data.subject);
   if (data.style) parts.push(data.style);
   if (data.mood) parts.push(data.mood);
@@ -33,6 +34,14 @@ export function transformMidjourney(data: Record<string, any>): string {
 
   if (data.sref) {
     params.push(`--sref ${data.sref}`);
+  }
+
+  if (data.iw !== undefined && data.iw !== 1) {
+    params.push(`--iw ${data.iw}`);
+  }
+
+  if (data.hd_mode) {
+    params.push(`--hd`);
   }
 
   if (data.negative) {
