@@ -154,15 +154,22 @@ export function OutputDisplay({ output, jsonData, modelName, compact = false }: 
 
               {job && (
                 <div className="space-y-1">
-                  <p className="text-zinc-400">
-                    Job ID: <span className="text-zinc-200">{job.job_id}</span>
-                  </p>
+                  {job.job_id !== '—' && (
+                    <p className="text-zinc-400">
+                      Job ID: <span className="text-zinc-200">{job.job_id}</span>
+                    </p>
+                  )}
                   <p className="text-zinc-400">
                     Status:{' '}
                     <span className={statusColors[job.status] ?? 'text-zinc-200'}>
                       {job.status}
                     </span>
                   </p>
+                  {job.status === 'pending' && (
+                    <p className="text-zinc-500 mt-1">
+                      Generando imagen, esto puede tomar unos minutos...
+                    </p>
+                  )}
                 </div>
               )}
             </div>

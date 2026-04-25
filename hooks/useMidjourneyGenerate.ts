@@ -38,9 +38,18 @@ export function useMidjourneyGenerate(): UseMidjourneyGenerateReturn {
 
       if (!res.ok) throw new Error(`Webhook error: ${res.status} ${res.statusText}`);
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: Record<string, any> = {};
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // body is not valid JSON — treat as accepted with no job metadata
+        }
+      }
+
       setJob({
-        job_id: data.job_id ?? data.id ?? 'unknown',
+        job_id: data.job_id ?? data.id ?? '—',
         status: data.status ?? 'pending',
       });
     } catch (err) {
