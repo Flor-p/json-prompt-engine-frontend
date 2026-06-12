@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePromptStore } from '@/lib/store';
 import { getModelsByTab, getModelById } from '@/config/modelSchemas';
 import { transformData } from '@/lib/transformers';
@@ -43,6 +43,7 @@ export default function Home() {
 
   const currentModelSchema = getModelById(activeModel);
   const availableModels = getModelsByTab(activeTab);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (currentModelSchema && !jsonError) {
@@ -50,12 +51,15 @@ export default function Home() {
       setOutputText(output);
 
       if (output && output !== 'Empty prompt' && output !== '/imagine prompt: [empty]') {
-        addToHistory({
-          model: activeModel,
-          tab: activeTab,
-          data: currentData,
-          output,
-        });
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          addToHistory({
+            model: activeModel,
+            tab: activeTab,
+            data: currentData,
+            output,
+          });
+        }, 1500);
       }
     }
   }, [currentData, activeModel, jsonError]);
