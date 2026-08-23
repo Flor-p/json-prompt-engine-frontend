@@ -30,7 +30,7 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             value={value !== undefined && value !== null ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
-            className="bg-zinc-900 border-zinc-700"
+            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
           />
         );
 
@@ -40,7 +40,7 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             value={value !== undefined && value !== null ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
-            className="bg-zinc-900 border-zinc-700 min-h-[100px] font-mono"
+            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 min-h-[100px] font-mono text-zinc-900 dark:text-zinc-100"
           />
         );
 
@@ -51,17 +51,17 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             value={value !== undefined && value !== null ? value : ''}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
             placeholder={field.placeholder}
-            className="bg-zinc-900 border-zinc-700"
+            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
           />
         );
 
       case 'select':
         return (
           <Select value={value || field.defaultValue} onValueChange={onChange}>
-            <SelectTrigger className="bg-zinc-900 border-zinc-700">
+            <SelectTrigger className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-700">
+            <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
               {field.options?.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -74,9 +74,9 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
       case 'slider':
         return (
           <div className="space-y-2">
-            <div className="flex justify-between text-sm text-zinc-400">
+            <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
               <span>{field.min}</span>
-              <span className="font-medium text-zinc-200">{value}</span>
+              <span className="font-medium text-zinc-900 dark:text-zinc-200">{value}</span>
               <span>{field.max}</span>
             </div>
             <Slider
@@ -100,7 +100,7 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
             />
             <label
               htmlFor={field.name}
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm font-medium leading-none text-zinc-900 dark:text-zinc-200 peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               {field.description}
             </label>
@@ -116,9 +116,9 @@ export function FieldRenderer({ field, value, onChange }: FieldRendererProps) {
     <div className="space-y-2">
       {field.type !== 'checkbox' && (
         <div className="flex justify-between items-baseline">
-          <Label className="text-zinc-200">{field.label}</Label>
+          <Label className="text-zinc-900 dark:text-zinc-200">{field.label}</Label>
           {field.description && (
-            <span className="text-xs text-zinc-500">{field.description}</span>
+            <span className="text-xs text-zinc-600 dark:text-zinc-500">{field.description}</span>
           )}
         </div>
       )}
