@@ -619,6 +619,241 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
     ]
   },
   {
+    id: 'veo-3-1',
+    name: 'Veo 3.1',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: false }),
+      ...videoClosingFields(),
+      {
+        name: 'variant',
+        label: 'Variant',
+        type: 'select',
+        defaultValue: 'veo-3.1-fast',
+        options: [
+          { value: 'veo-3.1', label: 'Veo 3.1 (best quality)' },
+          { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast' },
+          { value: 'veo-3.1-lite', label: 'Veo 3.1 Lite (max 1080p)' }
+        ],
+        description: 'Select in platform UI · Fast/Lite ~3 min render'
+      },
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '8s',
+        options: [
+          { value: '4s', label: '4 seconds' },
+          { value: '6s', label: '6 seconds' },
+          { value: '8s', label: '8 seconds (max)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: [
+          { value: '16:9', label: '16:9 (Landscape)' },
+          { value: '9:16', label: '9:16 (Portrait)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' },
+          { value: '4K', label: '4K (slower)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      }
+    ]
+  },
+  {
+    id: 'seedance-2',
+    name: 'Seedance 2.0',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
+      {
+        name: 'variant',
+        label: 'Variant',
+        type: 'select',
+        defaultValue: 'seedance-2.0-fast',
+        options: [
+          { value: 'seedance-2.0-fast', label: 'Seedance 2.0 Fast (720p)' },
+          { value: 'seedance-2.0-mini', label: 'Seedance 2.0 Mini (720p)' },
+          { value: 'seedance-2.0', label: 'Seedance 2.0 (up to 4K)' }
+        ],
+        description: 'Select in platform UI · same prompt for all three'
+      },
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '8s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '8s', label: '8 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds (max)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: SEEDANCE_ASPECT_RATIOS,
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '720p',
+        options: [
+          { value: '480p', label: '480p' },
+          { value: '720p', label: '720p (Fast / Mini max)' },
+          { value: '1080p', label: '1080p (2.0 only)' },
+          { value: '4K', label: '4K (2.0 only, slower)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio (turn on in platform UI too)'
+      }
+    ]
+  },
+  {
+    id: 'seedance-2-5',
+    name: 'Seedance 2.5',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '10s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds' },
+          { value: '20s', label: '20 seconds' },
+          { value: '30s', label: '30 seconds (max)' }
+        ],
+        description: 'Set in platform UI · longer = slower render'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: SEEDANCE_ASPECT_RATIOS,
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '480p', label: '480p' },
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio (turn on in platform UI too)'
+      }
+    ]
+  },
+  {
+    id: 'kling-3',
+    name: 'Kling 3.0',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
+      {
+        name: 'variant',
+        label: 'Variant',
+        type: 'select',
+        defaultValue: 'kling-3.0',
+        options: [
+          { value: 'kling-3.0', label: 'Kling 3.0' },
+          { value: 'kling-omni-3', label: 'Kling 3.0 Omni' }
+        ],
+        description: 'Select in platform UI · ~10 min render (Turbo has no audio)'
+      },
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '10s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds (max)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: [
+          { value: '16:9', label: '16:9 (Landscape)' },
+          { value: '9:16', label: '9:16 (Portrait)' },
+          { value: '1:1', label: '1:1 (Square)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' },
+          { value: '4K', label: '4K (slower)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio is optional in Kling — enable it in platform UI'
+      }
+    ]
+  },
+  {
     id: 'runway-gen4',
     name: 'Runway Gen-4',
     tab: 'video',
@@ -776,216 +1011,6 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         type: 'checkbox',
         defaultValue: true,
         description: 'Auto-enhance prompt quality'
-      }
-    ]
-  },
-  {
-    id: 'seedance-2',
-    name: 'Seedance 2.0',
-    tab: 'video',
-    fields: [
-      ...videoCoreFields(),
-      ...videoAudioFields({ withLanguage: true }),
-      ...videoClosingFields(),
-      {
-        name: 'duration',
-        label: 'Duration',
-        type: 'select',
-        defaultValue: '10s',
-        options: [
-          { value: '5s', label: '5 seconds' },
-          { value: '10s', label: '10 seconds' },
-          { value: '15s', label: '15 seconds (max)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'aspect_ratio',
-        label: 'Aspect Ratio',
-        type: 'select',
-        defaultValue: '16:9',
-        options: SEEDANCE_ASPECT_RATIOS,
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'resolution',
-        label: 'Resolution',
-        type: 'select',
-        defaultValue: '1080p',
-        options: [
-          { value: '480p', label: '480p' },
-          { value: '720p', label: '720p' },
-          { value: '1080p', label: '1080p' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'generate_audio',
-        label: 'Generate Audio',
-        type: 'checkbox',
-        defaultValue: true,
-        description: 'Native audio (turn on in platform UI too)'
-      }
-    ]
-  },
-  {
-    id: 'seedance-2-5',
-    name: 'Seedance 2.5',
-    tab: 'video',
-    fields: [
-      ...videoCoreFields(),
-      ...videoAudioFields({ withLanguage: true }),
-      ...videoClosingFields(),
-      {
-        name: 'duration',
-        label: 'Duration',
-        type: 'select',
-        defaultValue: '10s',
-        options: [
-          { value: '5s', label: '5 seconds' },
-          { value: '10s', label: '10 seconds' },
-          { value: '15s', label: '15 seconds' },
-          { value: '20s', label: '20 seconds' },
-          { value: '30s', label: '30 seconds (max)' }
-        ],
-        description: 'Set in platform UI · longer = slower render'
-      },
-      {
-        name: 'aspect_ratio',
-        label: 'Aspect Ratio',
-        type: 'select',
-        defaultValue: '16:9',
-        options: SEEDANCE_ASPECT_RATIOS,
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'resolution',
-        label: 'Resolution',
-        type: 'select',
-        defaultValue: '1080p',
-        options: [
-          { value: '480p', label: '480p' },
-          { value: '720p', label: '720p' },
-          { value: '1080p', label: '1080p' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'generate_audio',
-        label: 'Generate Audio',
-        type: 'checkbox',
-        defaultValue: true,
-        description: 'Native audio (turn on in platform UI too)'
-      }
-    ]
-  },
-  {
-    id: 'kling-3',
-    name: 'Kling 3.0',
-    tab: 'video',
-    fields: [
-      ...videoCoreFields(),
-      ...videoAudioFields({ withLanguage: true }),
-      ...videoClosingFields(),
-      {
-        name: 'variant',
-        label: 'Variant',
-        type: 'select',
-        defaultValue: 'kling-3.0',
-        options: [
-          { value: 'kling-3.0', label: 'Kling 3.0' },
-          { value: 'kling-3.0-turbo', label: 'Kling 3.0 Turbo (faster)' },
-          { value: 'kling-omni-3', label: 'Kling Omni 3' }
-        ],
-        description: 'Select in platform UI · not added to prompt'
-      },
-      {
-        name: 'duration',
-        label: 'Duration',
-        type: 'select',
-        defaultValue: '10s',
-        options: [
-          { value: '5s', label: '5 seconds' },
-          { value: '10s', label: '10 seconds' },
-          { value: '15s', label: '15 seconds (max)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'aspect_ratio',
-        label: 'Aspect Ratio',
-        type: 'select',
-        defaultValue: '16:9',
-        options: [
-          { value: '16:9', label: '16:9 (Landscape)' },
-          { value: '9:16', label: '9:16 (Portrait)' },
-          { value: '1:1', label: '1:1 (Square)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'resolution',
-        label: 'Resolution',
-        type: 'select',
-        defaultValue: '1080p',
-        options: [
-          { value: '720p', label: '720p' },
-          { value: '1080p', label: '1080p' },
-          { value: '4K', label: '4K (slower)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'generate_audio',
-        label: 'Generate Audio',
-        type: 'checkbox',
-        defaultValue: true,
-        description: 'Native audio is optional in Kling — enable it in platform UI'
-      }
-    ]
-  },
-  {
-    id: 'veo-3-1',
-    name: 'Veo 3.1',
-    tab: 'video',
-    fields: [
-      ...videoCoreFields(),
-      ...videoAudioFields({ withLanguage: false }),
-      ...videoClosingFields(),
-      {
-        name: 'variant',
-        label: 'Variant',
-        type: 'select',
-        defaultValue: 'veo-3.1-fast',
-        options: [
-          { value: 'veo-3.1', label: 'Veo 3.1 (best quality)' },
-          { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast' },
-          { value: 'veo-3.1-lite', label: 'Veo 3.1 Lite' }
-        ],
-        description: 'Select in platform UI · fixed 8s clip, audio always on'
-      },
-      {
-        name: 'aspect_ratio',
-        label: 'Aspect Ratio',
-        type: 'select',
-        defaultValue: '16:9',
-        options: [
-          { value: '16:9', label: '16:9 (Landscape)' },
-          { value: '9:16', label: '9:16 (Portrait)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
-      },
-      {
-        name: 'resolution',
-        label: 'Resolution',
-        type: 'select',
-        defaultValue: '1080p',
-        options: [
-          { value: '720p', label: '720p' },
-          { value: '1080p', label: '1080p' },
-          { value: '4K', label: '4K (slower)' }
-        ],
-        description: 'Set in platform UI · not added to prompt'
       }
     ]
   }
