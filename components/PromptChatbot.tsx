@@ -76,7 +76,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, onApplyFields }
         ...prev,
         {
           role: 'assistant',
-          content: 'Connection failed. Make sure ANTHROPIC_API_KEY is set in .env.local.',
+          content: 'Connection failed. Use the fields manually.',
         },
       ]);
     } finally {

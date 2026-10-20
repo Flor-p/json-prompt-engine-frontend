@@ -20,6 +20,151 @@ export interface ModelSchema {
   fields: Field[];
 }
 
+// ─── Shared video fields ─────────────────────────────────────────────
+// Prompt-content fields are always empty by default: everything creative
+// is written live from the brief. Only technical settings have defaults.
+
+const SEEDANCE_ASPECT_RATIOS = [
+  { value: '16:9', label: '16:9 (Landscape)' },
+  { value: '9:16', label: '9:16 (Portrait)' },
+  { value: '1:1', label: '1:1 (Square)' },
+  { value: '4:3', label: '4:3' },
+  { value: '3:4', label: '3:4' },
+  { value: '21:9', label: '21:9 (Cinematic)' }
+];
+
+const videoCoreFields = (): Field[] => [
+  {
+    name: 'subject',
+    label: 'Subject',
+    type: 'textarea',
+    defaultValue: '',
+    placeholder: 'Who or what the scene is about...',
+    description: 'Main subject, specific and visual'
+  },
+  {
+    name: 'action',
+    label: 'Action',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., slowly turns toward the window',
+    description: 'One clear action per clip'
+  },
+  {
+    name: 'camera',
+    label: 'Camera',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., slow dolly-in, medium close-up, eye level',
+    description: 'Shot size + movement + angle'
+  },
+  {
+    name: 'scene',
+    label: 'Scene',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., empty diner at dawn, rain on the windows',
+    description: 'Location + atmosphere'
+  },
+  {
+    name: 'lighting',
+    label: 'Lighting',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., soft window light, warm practicals',
+    description: 'Light source, quality, color'
+  },
+  {
+    name: 'style',
+    label: 'Style',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., 35mm film, muted palette, commercial polish',
+    description: 'Look, film stock, color treatment'
+  }
+];
+
+const videoAudioFields = ({ withLanguage }: { withLanguage: boolean }): Field[] => [
+  {
+    name: 'ambience',
+    label: 'Ambient Sound',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., distant traffic, rain on glass',
+    description: 'Room tone / environment, near to far'
+  },
+  {
+    name: 'sfx',
+    label: 'Sound Effects',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., cup clinks on the counter',
+    description: 'Tie each sound to its source'
+  },
+  {
+    name: 'music',
+    label: 'Music',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., minimal piano, slow build',
+    description: 'Genre, instruments, energy'
+  },
+  {
+    name: 'dialogue',
+    label: 'Dialogue / Voice-over',
+    type: 'textarea',
+    defaultValue: '',
+    placeholder: withLanguage
+      ? 'Speaker, delivery: line  →  The barista, softly: Your coffee is ready'
+      : 'Speaker, delivery: line  →  The barista, softly: Your coffee is ready (no quotes)',
+    description: 'One or two short lines sync best'
+  },
+  ...(withLanguage
+    ? [
+        {
+          name: 'dialogue_language',
+          label: 'Dialogue Language',
+          type: 'select' as FieldType,
+          defaultValue: 'English',
+          options: [
+            { value: 'English', label: 'English' },
+            { value: 'Spanish', label: 'Spanish' },
+            { value: 'Portuguese', label: 'Portuguese' },
+            { value: 'French', label: 'French' }
+          ],
+          description: 'Language of the spoken line'
+        }
+      ]
+    : [])
+];
+
+const videoClosingFields = (): Field[] => [
+  {
+    name: 'ending',
+    label: 'Final Beat',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., product hero shot, camera settles',
+    description: 'How the clip resolves'
+  },
+  {
+    name: 'on_screen_text',
+    label: 'On-screen Text / Slogan',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'Short — 2 to 4 words',
+    description: 'Optional · models may misspell long text'
+  },
+  {
+    name: 'constraints',
+    label: 'Avoid',
+    type: 'text',
+    defaultValue: '',
+    placeholder: 'e.g., subtitles, watermark, extra cuts',
+    description: 'Written inline into the prompt'
+  }
+];
+
 export const MODEL_SCHEMAS: ModelSchema[] = [
   {
     id: 'midjourney',
@@ -639,85 +784,98 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
     name: 'Seedance 2.0',
     tab: 'video',
     fields: [
-      {
-        name: 'subject',
-        label: 'Subject',
-        type: 'textarea',
-        defaultValue: '',
-        placeholder: 'Who or what the scene is about...',
-        description: 'Who or what the scene is about'
-      },
-      {
-        name: 'action',
-        label: 'Action',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., walks, leaps, turns',
-        description: 'What the subject is doing, one clear verb'
-      },
-      {
-        name: 'camera',
-        label: 'Camera',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., slow dolly-in, medium shot, eye level',
-        description: 'Shot size + movement + angle'
-      },
-      {
-        name: 'scene',
-        label: 'Scene',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., rainy Tokyo street, neon reflections, midnight',
-        description: 'Location, lighting, atmosphere'
-      },
-      {
-        name: 'style',
-        label: 'Style',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., cinematic, Blade Runner color palette',
-        description: 'Visual style, film reference, color treatment'
-      },
-      {
-        name: 'negative_prompt',
-        label: 'Negative Prompt',
-        type: 'textarea',
-        defaultValue: '',
-        placeholder: 'e.g., jitter, bent limbs, blur',
-        description: 'What to avoid'
-      },
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
       {
         name: 'duration',
         label: 'Duration',
         type: 'select',
-        defaultValue: '5s',
+        defaultValue: '10s',
         options: [
           { value: '5s', label: '5 seconds' },
           { value: '10s', label: '10 seconds' },
-          { value: '15s', label: '15 seconds' }
+          { value: '15s', label: '15 seconds (max)' }
         ],
-        description: 'Video length'
+        description: 'Set in platform UI · not added to prompt'
       },
       {
         name: 'aspect_ratio',
         label: 'Aspect Ratio',
         type: 'select',
         defaultValue: '16:9',
-        options: [
-          { value: '16:9', label: '16:9 (Landscape)' },
-          { value: '9:16', label: '9:16 (Portrait)' },
-          { value: '1:1', label: '1:1 (Square)' }
-        ],
-        description: 'Video aspect ratio'
+        options: SEEDANCE_ASPECT_RATIOS,
+        description: 'Set in platform UI · not added to prompt'
       },
       {
-        name: 'reference_image',
-        label: 'Reference Image',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'Optional: URL or @Image1 reference',
-        description: 'Optional URL or @Image1 reference'
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '480p', label: '480p' },
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio (turn on in platform UI too)'
+      }
+    ]
+  },
+  {
+    id: 'seedance-2-5',
+    name: 'Seedance 2.5',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
+      {
+        name: 'duration',
+        label: 'Duration',
+        type: 'select',
+        defaultValue: '10s',
+        options: [
+          { value: '5s', label: '5 seconds' },
+          { value: '10s', label: '10 seconds' },
+          { value: '15s', label: '15 seconds' },
+          { value: '20s', label: '20 seconds' },
+          { value: '30s', label: '30 seconds (max)' }
+        ],
+        description: 'Set in platform UI · longer = slower render'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: SEEDANCE_ASPECT_RATIOS,
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '480p', label: '480p' },
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio (turn on in platform UI too)'
       }
     ]
   },
@@ -726,76 +884,32 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
     name: 'Kling 3.0',
     tab: 'video',
     fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: true }),
+      ...videoClosingFields(),
       {
-        name: 'subject',
-        label: 'Subject',
-        type: 'textarea',
-        defaultValue: '',
-        placeholder: 'Who or what the scene is about...',
-        description: 'Who or what the scene is about'
-      },
-      {
-        name: 'action',
-        label: 'Action',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., walks slowly, leaps forward',
-        description: 'What the subject is doing'
-      },
-      {
-        name: 'camera',
-        label: 'Camera',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., wide shot, slow dolly-in, low angle',
-        description: 'Shot size + movement + angle'
-      },
-      {
-        name: 'scene',
-        label: 'Scene',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., misty forest, golden hour, foggy atmosphere',
-        description: 'Location + lighting + atmosphere'
-      },
-      {
-        name: 'style',
-        label: 'Style',
-        type: 'text',
-        defaultValue: '',
-        placeholder: 'e.g., cinematic, hyperrealistic, film noir',
-        description: 'Visual style'
-      },
-      {
-        name: 'negative_prompt',
-        label: 'Negative Prompt',
-        type: 'textarea',
-        defaultValue: '',
-        placeholder: 'e.g., blur, jitter, distorted limbs',
-        description: 'What to avoid'
-      },
-      {
-        name: 'mode',
-        label: 'Mode',
+        name: 'variant',
+        label: 'Variant',
         type: 'select',
-        defaultValue: 'standard',
+        defaultValue: 'kling-3.0',
         options: [
-          { value: 'standard', label: 'Standard' },
-          { value: 'pro', label: 'Pro' }
+          { value: 'kling-3.0', label: 'Kling 3.0' },
+          { value: 'kling-3.0-turbo', label: 'Kling 3.0 Turbo (faster)' },
+          { value: 'kling-omni-3', label: 'Kling Omni 3' }
         ],
-        description: 'Generation mode'
+        description: 'Select in platform UI · not added to prompt'
       },
       {
         name: 'duration',
         label: 'Duration',
         type: 'select',
-        defaultValue: '5s',
+        defaultValue: '10s',
         options: [
           { value: '5s', label: '5 seconds' },
           { value: '10s', label: '10 seconds' },
-          { value: '15s', label: '15 seconds' }
+          { value: '15s', label: '15 seconds (max)' }
         ],
-        description: 'Video length'
+        description: 'Set in platform UI · not added to prompt'
       },
       {
         name: 'aspect_ratio',
@@ -807,7 +921,7 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
           { value: '9:16', label: '9:16 (Portrait)' },
           { value: '1:1', label: '1:1 (Square)' }
         ],
-        description: 'Video aspect ratio'
+        description: 'Set in platform UI · not added to prompt'
       },
       {
         name: 'resolution',
@@ -815,20 +929,63 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         type: 'select',
         defaultValue: '1080p',
         options: [
+          { value: '720p', label: '720p' },
           { value: '1080p', label: '1080p' },
-          { value: '4K', label: '4K' }
+          { value: '4K', label: '4K (slower)' }
         ],
-        description: 'Output resolution'
+        description: 'Set in platform UI · not added to prompt'
       },
       {
-        name: 'cfg_scale',
-        label: 'CFG Scale',
-        type: 'slider',
-        defaultValue: 0.5,
-        min: 0,
-        max: 1,
-        step: 0.1,
-        description: 'Prompt adherence (0–1)'
+        name: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'checkbox',
+        defaultValue: true,
+        description: 'Native audio is optional in Kling — enable it in platform UI'
+      }
+    ]
+  },
+  {
+    id: 'veo-3-1',
+    name: 'Veo 3.1',
+    tab: 'video',
+    fields: [
+      ...videoCoreFields(),
+      ...videoAudioFields({ withLanguage: false }),
+      ...videoClosingFields(),
+      {
+        name: 'variant',
+        label: 'Variant',
+        type: 'select',
+        defaultValue: 'veo-3.1-fast',
+        options: [
+          { value: 'veo-3.1', label: 'Veo 3.1 (best quality)' },
+          { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast' },
+          { value: 'veo-3.1-lite', label: 'Veo 3.1 Lite' }
+        ],
+        description: 'Select in platform UI · fixed 8s clip, audio always on'
+      },
+      {
+        name: 'aspect_ratio',
+        label: 'Aspect Ratio',
+        type: 'select',
+        defaultValue: '16:9',
+        options: [
+          { value: '16:9', label: '16:9 (Landscape)' },
+          { value: '9:16', label: '9:16 (Portrait)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
+      },
+      {
+        name: 'resolution',
+        label: 'Resolution',
+        type: 'select',
+        defaultValue: '1080p',
+        options: [
+          { value: '720p', label: '720p' },
+          { value: '1080p', label: '1080p' },
+          { value: '4K', label: '4K (slower)' }
+        ],
+        description: 'Set in platform UI · not added to prompt'
       }
     ]
   }
