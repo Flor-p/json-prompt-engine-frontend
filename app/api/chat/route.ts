@@ -121,19 +121,48 @@ function sanitizeFields(raw: Record<string, unknown>, schema: ModelSchema): Reco
   return clean;
 }
 
+/** Creative fields of take A, so take B can deliberately differ from them. */
+const VARIATION_KEYS = ['subject', 'action', 'camera', 'scene', 'lighting', 'style', 'music', 'ending'];
+
+function buildUserMessage(brief: string, schema: ModelSchema, variationOf?: Record<string, unknown>): string {
+  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). One action, one camera move, no alternatives.`;
+  if (!variationOf || typeof variationOf !== 'object') return base;
+
+  const takeA = Object.fromEntries(
+    Object.entries(variationOf).filter(([k, v]) => VARIATION_KEYS.includes(k) && typeof v === 'string' && v.trim()),
+  );
+  return `${base}
+
+This is TAKE B. Take A already exists:
+${JSON.stringify(takeA, null, 2)}
+
+Write a clearly different take of the SAME brief:
+- Keep the brief, the product and the tone. Keep every detail the brief states.
+- Change the camera movement and shot size.
+- Change the lighting treatment (and time of day, unless the brief fixes it).
+- Change the music style and the closing shot.
+- It must still be one action and one camera move.`;
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI assistant is not configured' }, { status: 500 });
   }
 
-  let body: { message?: string; activeModel?: string; modelSchema?: ModelSchema };
+  let body: {
+    message?: string;
+    activeModel?: string;
+    modelSchema?: ModelSchema;
+    /** Fields of take A. When present, the assistant writes an alternative take B of the same brief. */
+    variationOf?: Record<string, unknown>;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { message, modelSchema } = body;
+  const { message, modelSchema, variationOf } = body;
   if (!message?.trim()) {
     return NextResponse.json({ error: 'Empty message' }, { status: 400 });
   }
@@ -163,7 +192,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: `Brief: ${message.trim()}\n\nTarget model: ${modelSchema.name}. Field values in English (dialogue in the brief's language). One action, one camera move, no alternatives.`,
+            content: buildUserMessage(message.trim(), modelSchema, variationOf),
           },
         ],
       }),

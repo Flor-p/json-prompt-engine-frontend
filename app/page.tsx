@@ -227,11 +227,12 @@ export default function Home() {
       <PromptChatbot
         activeModel={activeModel}
         currentModelSchema={currentModelSchema}
+        currentData={currentData}
         onApplyFields={handleApplyFields}
       />
 
       <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
-        JSON Prompt Engine v1.1.2 · Built by Flor Paramidani ·{' '}
+        JSON Prompt Engine v1.2.0 · Built by Flor Paramidani ·{' '}
         <a
           href="https://www.linkedin.com/in/florpara/"
           target="_blank"
@@ -261,4 +262,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+}

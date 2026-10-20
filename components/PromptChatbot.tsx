@@ -1,22 +1,31 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Copy, Shuffle } from 'lucide-react';
+import { toast } from 'sonner';
 import { ModelSchema } from '@/config/modelSchemas';
+import { transformData } from '@/lib/transformers';
+
+type Take = 'A' | 'B';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   fields?: Record<string, any>;
+  /** Brief that produced this answer — reused to request take B. */
+  brief?: string;
+  take?: Take;
 }
 
 interface PromptChatbotProps {
   activeModel: string;
   currentModelSchema: ModelSchema | undefined;
+  /** Current field values, so a copied prompt keeps the technical settings already chosen. */
+  currentData: Record<string, any>;
   onApplyFields: (fields: Record<string, any>) => void;
 }
 
-export function PromptChatbot({ activeModel, currentModelSchema, onApplyFields }: PromptChatbotProps) {
+export function PromptChatbot({ activeModel, currentModelSchema, currentData, onApplyFields }: PromptChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -34,53 +43,67 @@ export function PromptChatbot({ activeModel, currentModelSchema, onApplyFields }
     }
   }, [isOpen]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+  const requestFields = async (brief: string, take: Take, variationOf?: Record<string, any>) => {
     setIsLoading(true);
-
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
+          message: brief,
           activeModel,
           modelSchema: currentModelSchema,
+          ...(variationOf ? { variationOf } : {}),
         }),
       });
 
       const data = await res.json();
 
       if (data.error) {
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: `Error: ${data.error}` },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: data.explanation || 'Done.',
-            fields:
-              data.fields && Object.keys(data.fields).length > 0 ? data.fields : undefined,
-          },
-        ]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
+        return;
       }
-    } catch {
+
+      const fields = data.fields && Object.keys(data.fields).length > 0 ? data.fields : undefined;
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: 'Connection failed. Use the fields manually.',
+          content: `${take === 'B' ? 'Take B · ' : ''}${data.explanation || 'Done.'}`,
+          fields,
+          brief,
+          take,
         },
       ]);
+    } catch {
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection failed. Use the fields manually.' }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    const brief = input.trim();
+    setInput('');
+    setMessages((prev) => [...prev, { role: 'user', content: brief }]);
+    await requestFields(brief, 'A');
+  };
+
+  const requestTakeB = async (msg: Message) => {
+    if (!msg.brief || !msg.fields || isLoading) return;
+    await requestFields(msg.brief, 'B', msg.fields);
+  };
+
+  /** Builds the final prompt for a take without touching the form, and copies it. */
+  const copyTake = async (msg: Message) => {
+    if (!msg.fields) return;
+    const prompt = transformData(activeModel, { ...currentData, ...msg.fields });
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast.success(`Take ${msg.take ?? 'A'} copied`);
+    } catch {
+      toast.error('Failed to copy');
     }
   };
 
@@ -171,13 +194,32 @@ export function PromptChatbot({ activeModel, currentModelSchema, onApplyFields }
                   {msg.content}
                 </div>
                 {msg.role === 'assistant' && msg.fields && (
-                  <button
-                    onClick={() => onApplyFields(msg.fields!)}
-                    className="ml-1 rounded-md px-3 py-1 text-xs font-semibold text-zinc-900 transition-opacity hover:opacity-80 active:scale-95"
-                    style={{ backgroundColor: '#FEFF00' }}
-                  >
-                    Apply to fields
-                  </button>
+                  <div className="ml-1 flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => copyTake(msg)}
+                      className="flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold text-zinc-900 transition-opacity hover:opacity-80 active:scale-95"
+                      style={{ backgroundColor: '#FEFF00' }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy {msg.take ?? 'A'}
+                    </button>
+                    <button
+                      onClick={() => onApplyFields(msg.fields!)}
+                      className="rounded-md border border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-400 active:scale-95"
+                    >
+                      Apply to fields
+                    </button>
+                    {msg.take === 'A' && (
+                      <button
+                        onClick={() => requestTakeB(msg)}
+                        disabled={isLoading}
+                        className="flex items-center gap-1 rounded-md border border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-400 active:scale-95 disabled:opacity-40"
+                      >
+                        <Shuffle className="h-3 w-3" />
+                        Take B
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
