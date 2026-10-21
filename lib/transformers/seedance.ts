@@ -10,5 +10,6 @@ export function transformSeedance(data: Record<string, any>): string {
     visualOrder: ['subject_action', 'scene', 'lighting', 'style', 'camera'],
     dialogueFormat: 'quoted',
     audioEnabled: data.generate_audio !== false,
+    multishot: true,
   });
 }

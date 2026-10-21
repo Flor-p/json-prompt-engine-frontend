@@ -15,7 +15,7 @@ LANGUAGE — non-negotiable:
 DIRECTION — a single short clip, premium commercial quality:
 - DECIDE. Never write alternatives: no "or", no "and/or", no slashes between options. One place, one look, one music style.
 - ONE action beat (two at most). No sequences like enters → sits → is served → tastes.
-- ONE camera movement. Never a list of shots.
+- ONE camera movement per shot. Never list several shots in one field (multi-shot spots use "shot_list" only).
 - Keep every detail the brief states. Invent only what the brief leaves open.
 - READ THE BRIEF LITERALLY. Keep its exact tone and intent. Never add destruction, violence, danger, conflict or drama the brief does not ask for ("visita" = visits, calmly).
 - PROTECTED CHARACTERS: video models block copyrighted characters (e.g., Godzilla, Mickey Mouse, Spider-Man, Pikachu). Never write their names. Replace each with an ORIGINAL character of the same archetype, described in your own words (e.g., Godzilla → "a colossal reptilian monster"), without copying its signature design. Mention the swap in "explanation".
@@ -37,6 +37,8 @@ const FIELD_RULES: Record<string, string> = {
   dialogue:
     'Brief language. HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
   ending: 'English. ONE visual beat that closes the clip. Max 12 words.',
+  shot_list:
+    'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. Otherwise empty string.',
   on_screen_text:
     'EMPTY STRING unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
   constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid.',
@@ -127,10 +129,37 @@ function sanitizeFields(raw: Record<string, unknown>, schema: ModelSchema): Reco
 }
 
 /** Creative fields of take A, so take B can deliberately differ from them. */
-const VARIATION_KEYS = ['subject', 'action', 'camera', 'scene', 'lighting', 'style', 'music', 'ending'];
+const VARIATION_KEYS = ['subject', 'action', 'camera', 'scene', 'lighting', 'style', 'music', 'ending', 'shot_list'];
 
-function buildUserMessage(brief: string, schema: ModelSchema, variationOf?: Record<string, unknown>): string {
-  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). One action, one camera move, no alternatives.`;
+export interface ClipSettings {
+  shots?: string | number;
+  duration?: string;
+}
+
+/** Multi-shot instructions, only for models whose schema has a shot list. */
+function multishotInstructions(schema: ModelSchema, settings?: ClipSettings): string {
+  if (!schema.fields.some((f) => f.name === 'shot_list')) return '';
+  const shots = Math.min(3, Math.max(1, parseInt(String(settings?.shots ?? '1'), 10) || 1));
+  const seconds = parseInt(String(settings?.duration ?? ''), 10) || 15;
+  if (shots < 2) return '\n\nSINGLE SHOT: leave "shot_list" as an empty string.';
+  return `
+
+MULTI-SHOT SPOT: ${shots} shots in one ${seconds}-second clip (about ${Math.round(seconds / shots)} s each).
+- Fill "shot_list" with exactly ${shots} lines, one per shot.
+- Build a mini story arc: shot 1 hooks and sets the world, ${shots === 3 ? 'shot 2 develops the action, shot 3' : 'shot 2'} is the payoff (the emotion, product or punchline the brief is about).
+- Same subject, place and look across all shots: continuity matters.
+- Each shot: one shot size + one camera move + one action. Vary shot sizes between shots (wide → medium → close-up, or similar).
+- "camera" and "action" describe shot 1 only. Leave "ending" as an empty string (the last shot is the ending).
+- Sound and music are written once for the whole clip.`;
+}
+
+function buildUserMessage(
+  brief: string,
+  schema: ModelSchema,
+  variationOf?: Record<string, unknown>,
+  settings?: ClipSettings,
+): string {
+  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). No alternatives.${multishotInstructions(schema, settings)}`;
   if (!variationOf || typeof variationOf !== 'object') return base;
 
   const takeA = Object.fromEntries(
@@ -143,10 +172,10 @@ ${JSON.stringify(takeA, null, 2)}
 
 Write a clearly different take of the SAME brief:
 - Keep the brief, the product and the tone. Keep every detail the brief states.
-- Change the camera movement and shot size.
+- Change the camera movements and shot sizes (in every shot, if it is a multi-shot spot).
 - Change the lighting treatment (and time of day, unless the brief fixes it).
 - Change the music style and the closing shot.
-- It must still be one action and one camera move.`;
+- Keep the same number of shots as take A.`;
 }
 
 /** True when the brief explicitly asks for text on screen (slogan, brand, title, quoted words). */
@@ -178,7 +207,6 @@ const PROTECTED_CHARACTERS: Array<[RegExp, string]> = [
   [/\byoda\b/gi, 'a tiny wise green elder'],
   [/\bhomer simpson\b/gi, 'a bald cartoon dad'],
   [/\bbarbie\b/gi, 'a glamorous fashion doll'],
-  [/\belsa\b/gi, 'an ice queen in a shimmering gown'],
 ];
 
 function replaceProtected(text: string): string {
@@ -196,6 +224,8 @@ export async function POST(req: NextRequest) {
     modelSchema?: ModelSchema;
     /** Fields of take A. When present, the assistant writes an alternative take B of the same brief. */
     variationOf?: Record<string, unknown>;
+    /** Technical settings the prompt must be written for (shot count, duration). */
+    settings?: ClipSettings;
   };
   try {
     body = await req.json();
@@ -203,7 +233,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { message, modelSchema, variationOf } = body;
+  const { message, modelSchema, variationOf, settings } = body;
   if (!message?.trim()) {
     return NextResponse.json({ error: 'Empty message' }, { status: 400 });
   }
@@ -233,7 +263,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: buildUserMessage(message.trim(), modelSchema, variationOf),
+            content: buildUserMessage(message.trim(), modelSchema, variationOf, settings),
           },
         ],
       }),
