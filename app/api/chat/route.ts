@@ -17,6 +17,10 @@ DIRECTION — a single short clip, premium commercial quality:
 - ONE action beat (two at most). No sequences like enters → sits → is served → tastes.
 - ONE camera movement. Never a list of shots.
 - Keep every detail the brief states. Invent only what the brief leaves open.
+- READ THE BRIEF LITERALLY. Keep its exact tone and intent. Never add destruction, violence, danger, conflict or drama the brief does not ask for ("visita" = visits, calmly).
+- PROTECTED CHARACTERS: video models block copyrighted characters (e.g., Godzilla, Mickey Mouse, Spider-Man, Pikachu). Never write their names. Replace each with an ORIGINAL character of the same archetype, described in your own words (e.g., Godzilla → "a colossal reptilian monster"), without copying its signature design. Mention the swap in "explanation".
+- Real places and landmarks (e.g., the Obelisco) stay as written.
+- Everything must be consistent: lighting matches the time of day in "scene"; nothing in "constraints" contradicts the other fields.
 - Do not repeat information across fields.`;
 
 /** Per-field direction, keyed by field name. Applied on top of the schema description. */
@@ -25,15 +29,16 @@ const FIELD_RULES: Record<string, string> = {
   action: 'English. ONE action beat, present tense. Max 15 words. No sequence of events.',
   camera: 'English. Exactly one shot: shot size + one movement + angle. Max 12 words. Example format: "slow push-in, medium close-up, eye level".',
   scene: 'English. One specific location + atmosphere + time of day. Max 20 words. No alternatives.',
-  lighting: 'English. Light source, quality and color. Max 15 words.',
+  lighting: 'English. Light source, quality and color, consistent with the time of day in scene. Max 15 words.',
   style: 'English. Look, film stock, color grade. Max 15 words.',
   ambience: 'English. Environmental sound only, near to far. NEVER music. Max 15 words.',
-  sfx: 'English. Two or three sounds tied to their source. NEVER repeat a sound already in ambience. Max 15 words.',
+  sfx: 'English. Two or three sounds tied to their source, including any animal, creature or machine vocal sounds (roars, growls, purrs). NEVER repeat a sound already in ambience. Max 15 words.',
   music: 'English. One style, instruments, tempo, energy. Max 15 words.',
   dialogue:
-    'Brief language. Optional. EXACTLY ONE line, spoken by the subject who is on screen — never by an off-screen character. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
+    'Brief language. HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
   ending: 'English. ONE visual beat that closes the clip. Max 12 words.',
-  on_screen_text: 'Optional. 2–3 words. Choose words that are spelled without accents or special characters (e.g., BUENOS AIRES, not CAFÉ PORTEÑO). Empty string if the brief does not need a slogan.',
+  on_screen_text:
+    'EMPTY STRING unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
   constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid.',
 };
 
@@ -144,6 +149,42 @@ Write a clearly different take of the SAME brief:
 - It must still be one action and one camera move.`;
 }
 
+/** True when the brief explicitly asks for text on screen (slogan, brand, title, quoted words). */
+function briefAsksForText(brief: string): boolean {
+  const b = brief.toLowerCase();
+  if (/["“”«»]/.test(brief)) return true;
+  return /\b(e?slogan|tagline|claim|lema|frase|texto|text|t[ií]tulo|title|marca|brand|logo|cartel|sign|leyenda|caption|copy)\b/.test(b);
+}
+
+/**
+ * Hard fallback for protected characters: video models (Seedance especially) reject them in moderation.
+ * Each name is swapped for an original archetype so a generation is never lost to a block.
+ */
+const PROTECTED_CHARACTERS: Array<[RegExp, string]> = [
+  [/\bgodzilla\b/gi, 'a colossal reptilian monster'],
+  [/\bking kong\b/gi, 'a giant ape'],
+  [/\bmickey( mouse)?\b/gi, 'a cheerful cartoon mouse'],
+  [/\bminnie( mouse)?\b/gi, 'a cheerful cartoon mouse'],
+  [/\bspider-?man\b/gi, 'a masked acrobatic superhero'],
+  [/\bbatman\b/gi, 'a caped vigilante in a dark suit'],
+  [/\bsuperman\b/gi, 'a flying caped superhero'],
+  [/\biron ?man\b/gi, 'a superhero in a high-tech metal suit'],
+  [/\bhulk\b/gi, 'a giant green-skinned strongman'],
+  [/\bpikachu\b/gi, 'a small yellow electric creature'],
+  [/\bsuper mario\b/gi, 'a mustached plumber in overalls'],
+  [/\bshrek\b/gi, 'a friendly green ogre'],
+  [/\bhello kitty\b/gi, 'a cute white cartoon cat'],
+  [/\bdarth vader\b/gi, 'a masked villain in black armor'],
+  [/\byoda\b/gi, 'a tiny wise green elder'],
+  [/\bhomer simpson\b/gi, 'a bald cartoon dad'],
+  [/\bbarbie\b/gi, 'a glamorous fashion doll'],
+  [/\belsa\b/gi, 'an ice queen in a shimmering gown'],
+];
+
+function replaceProtected(text: string): string {
+  return PROTECTED_CHARACTERS.reduce((acc, [re, generic]) => acc.replace(re, generic), text);
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI assistant is not configured' }, { status: 500 });
@@ -217,9 +258,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { explanation, ...fields } = toolUse.input;
+    const clean = sanitizeFields(fields, modelSchema);
+    for (const [key, value] of Object.entries(clean)) {
+      if (typeof value === 'string' && key !== 'on_screen_text') clean[key] = replaceProtected(value);
+    }
+    // Hard guard: no on-screen text unless the brief asks for it (models render any text they get).
+    if (modelSchema.fields.some((f) => f.name === 'on_screen_text') && !briefAsksForText(message)) {
+      clean.on_screen_text = '';
+    }
     return NextResponse.json({
       explanation: typeof explanation === 'string' && explanation.trim() ? explanation : 'Done.',
-      fields: sanitizeFields(fields, modelSchema),
+      fields: clean,
     });
   } catch (error) {
     const aborted = error instanceof Error && error.name === 'AbortError';
