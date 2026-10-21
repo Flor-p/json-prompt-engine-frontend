@@ -21,6 +21,7 @@ DIRECTION — a single short clip, premium commercial quality:
 - PROTECTED CHARACTERS: video models block copyrighted characters (e.g., Godzilla, Mickey Mouse, Spider-Man, Pikachu). Never write their names. Replace each with an ORIGINAL character of the same archetype, described in your own words (e.g., Godzilla → "a colossal reptilian monster"), without copying its signature design. Mention the swap in "explanation".
 - Real places and landmarks (e.g., the Obelisco) stay as written.
 - Everything must be consistent: lighting matches the time of day in "scene"; nothing in "constraints" contradicts the other fields.
+- OBJECT CONTINUITY: every object keeps one consistent state for the whole clip (where it is, who holds it). Never make an object appear, disappear or "enter the frame" if it is already in the scene. The ending continues the action; it never re-introduces something already present.
 - Do not repeat information across fields.`;
 
 /** Per-field direction, keyed by field name. Applied on top of the schema description. */
@@ -175,7 +176,7 @@ Write a clearly different take of the SAME brief:
 - Change the camera movements and shot sizes (in every shot, if it is a multi-shot spot).
 - Change the lighting treatment (and time of day, unless the brief fixes it).
 - Change the music style and the closing shot.
-- Keep the same number of shots as take A.`;
+${schema.fields.some((f) => f.name === 'shot_list') ? '- Keep the same number of shots as take A.' : '- This model takes ONE single shot: ignore take A\'s shot list and write one continuous shot.'}`;
 }
 
 /** True when the brief explicitly asks for text on screen (slogan, brand, title, quoted words). */
