@@ -165,6 +165,32 @@ const videoClosingFields = (): Field[] => [
   }
 ];
 
+/**
+ * Multi-shot spot (Seedance): N shots in one generation, written as
+ * "Shot 1 [0-5s]: ..." by the transformer. The assistant fills shot_list.
+ */
+const shotListField = (): Field => ({
+  name: 'shot_list',
+  label: 'Shot List',
+  type: 'textarea',
+  defaultValue: '',
+  placeholder: 'One line per shot: shot size + camera move, action',
+  description: 'Used when Shots > 1 · timecodes are added automatically'
+});
+
+const shotsField = (defaultShots: string): Field => ({
+  name: 'shots',
+  label: 'Shots',
+  type: 'select',
+  defaultValue: defaultShots,
+  options: [
+    { value: '1', label: '1 shot (single take)' },
+    { value: '2', label: '2 shots' },
+    { value: '3', label: '3 shots (hook → build → payoff)' }
+  ],
+  description: 'Multi-shot spot in one generation'
+});
+
 export const MODEL_SCHEMAS: ModelSchema[] = [
   {
     id: 'midjourney',
@@ -681,8 +707,10 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
     tab: 'video',
     fields: [
       ...videoCoreFields(),
+      shotListField(),
       ...videoAudioFields({ withLanguage: true }),
       ...videoClosingFields(),
+      shotsField('3'),
       {
         name: 'variant',
         label: 'Variant',
@@ -699,7 +727,7 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         name: 'duration',
         label: 'Duration',
         type: 'select',
-        defaultValue: '8s',
+        defaultValue: '15s',
         options: [
           { value: '5s', label: '5 seconds' },
           { value: '8s', label: '8 seconds' },
@@ -744,13 +772,15 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
     tab: 'video',
     fields: [
       ...videoCoreFields(),
+      shotListField(),
       ...videoAudioFields({ withLanguage: true }),
       ...videoClosingFields(),
+      shotsField('3'),
       {
         name: 'duration',
         label: 'Duration',
         type: 'select',
-        defaultValue: '10s',
+        defaultValue: '20s',
         options: [
           { value: '5s', label: '5 seconds' },
           { value: '10s', label: '10 seconds' },

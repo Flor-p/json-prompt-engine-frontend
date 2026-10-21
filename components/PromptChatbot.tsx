@@ -69,6 +69,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
           message: brief,
           activeModel,
           modelSchema: currentModelSchema,
+          settings: { shots: currentData.shots, duration: currentData.duration },
           ...(variationOf ? { variationOf } : {}),
         }),
       });

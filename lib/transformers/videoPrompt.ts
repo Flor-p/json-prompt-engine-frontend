@@ -20,6 +20,8 @@ export interface VideoPromptOptions {
   dialogueFormat: DialogueFormat;
   /** When false, the audio paragraph is omitted entirely. */
   audioEnabled?: boolean;
+  /** Model accepts "Shot 1 [0-5s]: ..." multi-shot prompts (Seedance). */
+  multishot?: boolean;
 }
 
 const str = (value: unknown): string =>
@@ -97,8 +99,49 @@ function buildDialogue(data: Record<string, any>, format: DialogueFormat): strin
     .join(' ');
 }
 
+
+/** "15s" → 15. Falls back to `fallback` when the value is missing or invalid. */
+const parseSeconds = (value: unknown, fallback: number): number => {
+  const n = parseInt(String(value ?? ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+};
+
+/** Splits the shot list into clean lines, dropping any "Shot 1:" / "1." prefix the user or assistant wrote. */
+const parseShotList = (raw: string): string[] =>
+  raw
+    .replace(/\\n/g, '\n')
+    .split('\n')
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^(shot|plano|toma)\s*\d+\s*(\[[^\]]*\])?\s*[:.\-–]\s*/i, '')
+        .replace(/^\d+\s*[.)\-–]\s*/, '')
+        .trim(),
+    )
+    .filter(Boolean);
+
+/**
+ * Builds "Shot 1 [0-5s]: ..." lines with even, contiguous integer timecodes
+ * across the clip duration (Seedance multi-shot syntax).
+ */
+function buildShots(data: Record<string, any>): string {
+  const shots = parseShotList(str(data.shot_list));
+  if (shots.length < 2) return '';
+  const total = parseSeconds(data.duration, 15);
+  const n = shots.length;
+  return shots
+    .map((shot, i) => {
+      const start = Math.round((i * total) / n);
+      const end = Math.round(((i + 1) * total) / n);
+      return `Shot ${i + 1} [${start}-${end}s]: ${sentence(shot)}`;
+    })
+    .join('\n');
+}
+
 export function buildVideoPrompt(data: Record<string, any>, options: VideoPromptOptions): string {
-  const { visualOrder, dialogueFormat, audioEnabled = true } = options;
+  const { visualOrder, dialogueFormat, audioEnabled = true, multishot = false } = options;
+  const wantsShots = multishot && parseInt(str(data.shots) || '1', 10) > 1;
+  const shotBlock = wantsShots ? buildShots(data) : '';
 
   // ── Visual paragraph ──────────────────────────────────────────────
   const subject = str(data.subject);
@@ -117,11 +160,22 @@ export function buildVideoPrompt(data: Record<string, any>, options: VideoPrompt
     lighting: sentence(str(data.lighting)),
     style: sentence(str(data.style)),
   };
-  const visual = visualOrder.map((part) => visualMap[part]).filter(Boolean).join(' ');
+  // Multi-shot: subject + world first, then the timed shot list (camera and action live in each shot).
+  const visual = shotBlock
+    ? [
+        [visualMap.subject_action ? sentence(str(data.subject)) : '', visualMap.scene, visualMap.lighting, visualMap.style]
+          .filter(Boolean)
+          .join(' '),
+        shotBlock,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : visualOrder.map((part) => visualMap[part]).filter(Boolean).join(' ');
 
   // ── Closing beat ──────────────────────────────────────────────────
   const closing: string[] = [];
-  const ending = str(data.ending);
+  // In a multi-shot spot the last shot is the payoff, so a separate "Final shot" would contradict it.
+  const ending = shotBlock ? '' : str(data.ending);
   if (ending) closing.push(sentence(`Final shot: ${ending}`));
   const onScreen = stripWrappingQuotes(str(data.on_screen_text));
   if (onScreen) {
