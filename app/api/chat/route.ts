@@ -89,7 +89,13 @@ function buildTool(schema: ModelSchema) {
     input_schema: {
       type: 'object',
       properties,
-      required: ['explanation', ...creative.filter((f) => ['subject', 'action', 'camera', 'scene'].includes(f.name)).map((f) => f.name)],
+      // Sound is part of what judges evaluate: video takes must always come with ambience, effects and music.
+      required: [
+        'explanation',
+        ...creative
+          .filter((f) => ['subject', 'action', 'camera', 'scene', 'ambience', 'sfx', 'music'].includes(f.name))
+          .map((f) => f.name),
+      ],
     },
   };
 }
@@ -176,6 +182,7 @@ Write a clearly different take of the SAME brief:
 - Change the camera movements and shot sizes (in every shot, if it is a multi-shot spot).
 - Change the lighting treatment (and time of day, unless the brief fixes it).
 - Change the music style and the closing shot.
+- It is a COMPLETE take: write ambience, sound effects and music again (and a dialogue line if the brief calls for one).
 ${schema.fields.some((f) => f.name === 'shot_list') ? '- Keep the same number of shots as take A.' : '- This model takes ONE single shot: ignore take A\'s shot list and write one continuous shot.'}`;
 }
 
