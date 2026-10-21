@@ -25,6 +25,8 @@ import { PromptChatbot } from '@/components/PromptChatbot';
 
 export default function Home() {
   const [showJson, setShowJson] = useState(false);
+  /** Bumped by Reset so the AI assistant also starts a fresh conversation. */
+  const [chatClearSignal, setChatClearSignal] = useState(0);
 
   const {
     activeTab,
@@ -126,7 +128,10 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={resetToDefaults}
+                onClick={() => {
+                  resetToDefaults();
+                  setChatClearSignal((n) => n + 1);
+                }}
                 className="h-7 gap-1 px-2 text-xs md:h-9 md:gap-2 md:px-3 md:text-sm"
               >
                 <RotateCcw className="h-3 w-3 md:h-4 md:w-4" />
@@ -229,6 +234,7 @@ export default function Home() {
         currentModelSchema={currentModelSchema}
         currentData={currentData}
         onApplyFields={handleApplyFields}
+        clearSignal={chatClearSignal}
       />
 
       <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
