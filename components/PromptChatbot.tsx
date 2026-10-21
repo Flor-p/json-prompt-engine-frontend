@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Copy, Shuffle } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Copy, Shuffle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModelSchema } from '@/config/modelSchemas';
 import { transformData } from '@/lib/transformers';
@@ -23,15 +23,30 @@ interface PromptChatbotProps {
   /** Current field values, so a copied prompt keeps the technical settings already chosen. */
   currentData: Record<string, any>;
   onApplyFields: (fields: Record<string, any>) => void;
+  /** Incremented by the page's Reset button: clears the conversation. */
+  clearSignal?: number;
 }
 
-export function PromptChatbot({ activeModel, currentModelSchema, currentData, onApplyFields }: PromptChatbotProps) {
+export function PromptChatbot({ activeModel, currentModelSchema, currentData, onApplyFields, clearSignal = 0 }: PromptChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  /** Bumped on every clear, so a response that arrives after a reset is discarded. */
+  const sessionRef = useRef(0);
+
+  const clearChat = () => {
+    sessionRef.current += 1;
+    setMessages([]);
+    setInput('');
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (clearSignal > 0) clearChat();
+  }, [clearSignal]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,6 +59,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
   }, [isOpen]);
 
   const requestFields = async (brief: string, take: Take, variationOf?: Record<string, any>) => {
+    const session = sessionRef.current;
     setIsLoading(true);
     try {
       const res = await fetch('/api/chat', {
@@ -58,6 +74,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
       });
 
       const data = await res.json();
+      if (session !== sessionRef.current) return;
 
       if (data.error) {
         setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
@@ -76,9 +93,10 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
         },
       ]);
     } catch {
+      if (session !== sessionRef.current) return;
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection failed. Use the fields manually.' }]);
     } finally {
-      setIsLoading(false);
+      if (session === sessionRef.current) setIsLoading(false);
     }
   };
 
@@ -142,13 +160,25 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
               <Bot className="h-5 w-5 text-zinc-900" />
               <span className="text-sm font-semibold text-zinc-900">AI Prompt Assistant</span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="rounded-md p-1 text-zinc-900 transition-colors hover:bg-black/10"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={clearChat}
+                disabled={messages.length === 0 && !input}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-zinc-900 transition-colors hover:bg-black/10 disabled:opacity-40"
+                aria-label="New chat"
+                title="New chat"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                New
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="rounded-md p-1 text-zinc-900 transition-colors hover:bg-black/10"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Model context */}
