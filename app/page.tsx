@@ -118,12 +118,12 @@ export default function Home() {
             {/* Row 1 (mobile) / Left side (md+): logo + title */}
             <div className="flex items-center gap-3">
               <video
-                src="/esphere.mp4"
+                src="/logo-vamp.mp4"
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="h-12 w-12 object-contain"
+                className="h-12 w-12 rounded-md object-cover"
               />
               <h1
                 className="text-zinc-900 dark:text-zinc-100"
@@ -280,7 +280,7 @@ export default function Home() {
       />
 
       <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
-        JSON Prompt Engine v1.2.0 · Built by Flor Paramidani ·{' '}
+        JSON Prompt Engine v1.3.0 · Built by Flor Paramidani ·{' '}
         <a
           href="https://www.linkedin.com/in/florpara/"
           target="_blank"
