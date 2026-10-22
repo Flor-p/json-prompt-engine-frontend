@@ -18,13 +18,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RotateCcw, Code } from 'lucide-react';
+import { RotateCcw, Code, Monitor } from 'lucide-react';
+import { DuelTimer } from '@/components/DuelTimer';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Toaster } from '@/components/ui/sonner';
 import { PromptChatbot } from '@/components/PromptChatbot';
 
 export default function Home() {
   const [showJson, setShowJson] = useState(false);
+  /** Stage mode: projector-friendly type + duel timer. Remembered per browser. */
+  const [stageMode, setStageMode] = useState(false);
+
+  useEffect(() => {
+    try {
+      setStageMode(localStorage.getItem('jpe-stage-mode') === '1');
+    } catch {
+      /* storage unavailable: default off */
+    }
+  }, []);
+
+  const toggleStageMode = () => {
+    setStageMode((on) => {
+      const next = !on;
+      try {
+        localStorage.setItem('jpe-stage-mode', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
   /** Bumped by Reset so the AI assistant also starts a fresh conversation. */
   const [chatClearSignal, setChatClearSignal] = useState(0);
 
@@ -85,7 +108,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className={stageMode ? 'stage-mode min-h-screen' : 'min-h-screen'}>
       <Toaster />
 
       <header className="border-b border-border bg-card backdrop-blur">
@@ -124,6 +147,19 @@ export default function Home() {
                 onLoadPreset={handleLoadPreset}
               />
               <HistoryViewer onLoadHistory={handleLoadHistory} />
+              <Button
+                variant={stageMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={toggleStageMode}
+                aria-pressed={stageMode}
+                title="Stage mode: bigger type and duel timer for projection"
+                className={`h-7 gap-1 px-2 text-xs md:h-9 md:gap-2 md:px-3 md:text-sm ${
+                  stageMode ? 'bg-[#FEFF00] text-zinc-900 hover:bg-[#FEFF00]/90' : ''
+                }`}
+              >
+                <Monitor className="h-3 w-3 md:h-4 md:w-4" />
+                Stage
+              </Button>
               <ThemeToggle />
               <Button
                 variant="outline"
@@ -173,10 +209,16 @@ export default function Home() {
           </button>
         </div>
 
+        {stageMode && <DuelTimer />}
+
         {/* Panels — DOM order: Fields → Output → JSON so that on tablet (2-col)
             Fields+Output share row 1 and JSON (when toggled) spans row 2.
             On desktop the order is reset to Fields | JSON | Output via lg:order-* */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:h-[calc(100vh-240px)]">
+        <div
+          className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${
+            stageMode ? 'lg:h-[calc(100vh-340px)]' : 'lg:h-[calc(100vh-240px)]'
+          }`}
+        >
           {/* Fields */}
           <div className="order-1 lg:order-1 min-h-[250px] overflow-auto rounded-lg border border-border bg-card p-6 lg:min-h-0">
             <h2 className="mb-4 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
