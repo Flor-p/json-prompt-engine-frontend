@@ -264,8 +264,9 @@ export const MODEL_SCHEMAS: ModelSchema[] = [
         name: 'v',
         label: 'Version (--v)',
         type: 'select',
-        defaultValue: '8.1',
+        defaultValue: '8.2',
         options: [
+          { value: '8.2', label: 'V8.2' },
           { value: '8.1', label: 'V8.1' },
           { value: '8.0', label: 'V8.0' },
           { value: '7', label: 'V7' },

@@ -80,3 +80,41 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Stage mode: projector-friendly type and contrast ─────────────────── */
+.stage-mode header video {
+  height: 4rem;
+  width: 4rem;
+}
+.stage-mode h2 {
+  font-size: 1.35rem;
+}
+.stage-mode h3 {
+  font-size: 1.05rem;
+}
+.stage-mode .text-sm {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+.stage-mode .text-xs {
+  font-size: 0.85rem;
+  line-height: 1.2rem;
+}
+.stage-mode label {
+  font-size: 1rem;
+}
+.stage-mode input,
+.stage-mode textarea,
+.stage-mode button[role='combobox'] {
+  font-size: 1.05rem;
+}
+.stage-mode pre {
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+/* Lift low-contrast helper text so it reads on a projector. */
+.stage-mode .text-zinc-500,
+.stage-mode .text-zinc-600,
+.stage-mode .dark\:text-zinc-500 {
+  color: rgb(161 161 170);
+}
