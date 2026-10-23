@@ -21,6 +21,7 @@ DIRECTION — a single short clip, premium commercial quality:
 - PROTECTED CHARACTERS: video models block copyrighted characters (e.g., Godzilla, Mickey Mouse, Spider-Man, Pikachu). Never write their names. Replace each with an ORIGINAL character of the same archetype, described in your own words (e.g., Godzilla → "a colossal reptilian monster"), without copying its signature design. Mention the swap in "explanation".
 - Real places and landmarks (e.g., the Obelisco) stay as written.
 - Everything must be consistent: lighting matches the time of day in "scene"; nothing in "constraints" contradicts the other fields.
+- NON-HUMAN CHARACTERS (animals, creatures, dragons, monsters, living objects): they never do fine hand work (grabbing, pouring, holding tools). They act with snout, mouth, head, paws on the ground or the whole body, or the shot shows the result already done. Keep their anatomy natural: no human hands, no extra limbs.
 - OBJECT CONTINUITY: every object keeps one consistent state for the whole clip (where it is, who holds it). Never make an object appear, disappear or "enter the frame" if it is already in the scene. The ending continues the action; it never re-introduces something already present.
 - Do not repeat information across fields.`;
 
@@ -221,6 +222,23 @@ function replaceProtected(text: string): string {
   return PROTECTED_CHARACTERS.reduce((acc, [re, generic]) => acc.replace(re, generic), text);
 }
 
+/** Animals and creatures: video models tend to morph their paws into human hands. */
+const NON_HUMAN =
+  /\b(dogs?|pupp(?:y|ies)|cats?|kittens?|birds?|pigeons?|doves?|parrots?|owls?|ducks?|chickens?|hens?|roosters?|penguins?|horses?|cows?|bulls?|pigs?|sheep|goats?|llamas?|foxes|fox|wolf|wolves|bears?|lions?|tigers?|elephants?|giraffes?|rabbits?|bunn(?:y|ies)|mice|mouse|rats?|squirrels?|frogs?|turtles?|tortoises?|whales?|dolphins?|fish|sharks?|octop(?:us|i)|crabs?|dragons?|dinosaurs?|monsters?|creatures?|beasts?|unicorns?|kaiju|reptil\w*|animals?)\b/i;
+
+const ANATOMY_GUARD = 'human hands on animals or creatures, extra limbs, morphing anatomy';
+
+/** Appends the anatomy guard to "constraints" when any visual field features a non-human character. */
+function addAnatomyGuard(fields: Record<string, any>): void {
+  const visual = ['subject', 'action', 'scene', 'shot_list', 'ending']
+    .map((k) => (typeof fields[k] === 'string' ? fields[k] : ''))
+    .join(' ');
+  if (!NON_HUMAN.test(visual)) return;
+  const current = typeof fields.constraints === 'string' ? fields.constraints.trim() : '';
+  if (current.toLowerCase().includes('human hands')) return;
+  fields.constraints = current ? `${current.replace(/[.;,\s]+$/, '')}, ${ANATOMY_GUARD}` : ANATOMY_GUARD;
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI assistant is not configured' }, { status: 500 });
@@ -299,6 +317,9 @@ export async function POST(req: NextRequest) {
     const clean = sanitizeFields(fields, modelSchema);
     for (const [key, value] of Object.entries(clean)) {
       if (typeof value === 'string' && key !== 'on_screen_text') clean[key] = replaceProtected(value);
+    }
+    if (modelSchema.tab === 'video' && modelSchema.fields.some((f) => f.name === 'constraints')) {
+      addAnatomyGuard(clean);
     }
     // Hard guard: no on-screen text unless the brief asks for it (models render any text they get).
     if (modelSchema.fields.some((f) => f.name === 'on_screen_text') && !briefAsksForText(message)) {
