@@ -274,6 +274,15 @@ function fixMateSip(text: string): string {
     .replace(/\bdrinks\s+(from\s+)?(the\s+)?(mate|gourd)\b/gi, 'sips the mate through the metal straw');
 }
 
+/** True when a line meant to be Spanish is actually written in English. */
+function isEnglishLine(dialogue: string): boolean {
+  const idx = dialogue.indexOf(':');
+  const spoken = (idx > 0 && idx < 60 ? dialogue.slice(idx + 1) : dialogue).toLowerCase();
+  const en = spoken.match(/\b(i|i'm|am|the|you|your|is|are|my|we|this|it|and|of|to|what|here|now|be)\b/g)?.length ?? 0;
+  const es = spoken.match(/\b(el|la|los|las|de|que|y|es|no|soy|yo|un|una|se|mi|por|con|esto|acá|aca|che|qué|ya|en|lo|me|te|su|al|del|para|llegó)\b/g)?.length ?? 0;
+  return en >= 2 && es === 0;
+}
+
 /** Appends the anatomy guard to "constraints" when any visual field features a non-human character. */
 function addAnatomyGuard(fields: Record<string, any>): void {
   const visual = ['subject', 'action', 'scene', 'shot_list', 'ending']
@@ -363,6 +372,14 @@ export async function POST(req: NextRequest) {
     const clean = sanitizeFields(fields, modelSchema);
     for (const [key, value] of Object.entries(clean)) {
       if (typeof value === 'string' && key !== 'on_screen_text') clean[key] = replaceProtected(value);
+    }
+    // Wrong-language line (e.g. English words under "says in Spanish"): better no line than a wrong one.
+    if (
+      typeof clean.dialogue === 'string' &&
+      /^(spanish|español)$/i.test(String(clean.dialogue_language ?? '')) &&
+      isEnglishLine(clean.dialogue)
+    ) {
+      clean.dialogue = '';
     }
     if (modelSchema.tab === 'video') {
       for (const key of ['action', 'shot_list', 'ending']) {
