@@ -10,17 +10,26 @@ const SYSTEM_PROMPT = `You are a senior commercial director and prompt engineer 
 LANGUAGE — non-negotiable:
 - Every field value is written in ENGLISH, even when the brief is in Spanish.
 - Only exception: "dialogue". Spoken lines use the brief's language (Spanish brief → Spanish lines) and "dialogue_language" is set to match.
+- The spoken words in "dialogue" are WRITTEN in that language (Spanish brief → Spanish words, e.g. "Señores, esto no se negocia"). Never English words in a Spanish line.
 - "explanation" uses the brief's language.
+
+CREATIVE CONCEPT — do this FIRST, like a top agency creative director:
+- Find ONE surprising twist that turns the brief into a memorable 15-second spot: humor, emotion or an unexpected angle the audience gets instantly. Never the obvious, literal version.
+- Hyperbole or fantasy in the brief IS the premise: dramatize it with full commitment ("the most important meeting in the world" → staged with the gravity of a world summit), never tone it down.
+- Clear arc: hook → build → payoff. The LAST shot is the punchline or the emotional peak.
+- If the brief names a product, brand or service, it is the hero of the last shot.
+- Write the twist in "explanation", in the brief's language, starting with "IDEA: " (max 25 words).
 
 DIRECTION — a single short clip, premium commercial quality:
 - DECIDE. Never write alternatives: no "or", no "and/or", no slashes between options. One place, one look, one music style.
 - ONE action beat (two at most). No sequences like enters → sits → is served → tastes.
 - ONE camera movement per shot. Never list several shots in one field (multi-shot spots use "shot_list" only).
 - Keep every detail the brief states. Invent only what the brief leaves open.
-- READ THE BRIEF LITERALLY. Keep its exact tone and intent. Never add destruction, violence, danger, conflict or drama the brief does not ask for ("visita" = visits, calmly).
+- Respect the brief's facts and intended tone. Never add destruction, violence or danger it does not ask for ("visita" = visits, calmly). Exaggeration and fantasy in the brief are amplified, never softened.
+- MODERATION-SAFE: no violence, weapons, blood, gore, nudity or drugs, and no real people (presidents, celebrities, athletes) by name or likeness — use fictional archetypes ("world leaders in dark suits").
 - PROTECTED CHARACTERS: video models block copyrighted characters (e.g., Godzilla, Mickey Mouse, Spider-Man, Pikachu). Never write their names. Replace each with an ORIGINAL character of the same archetype, described in your own words (e.g., Godzilla → "a colossal reptilian monster"), without copying its signature design. Mention the swap in "explanation".
 - Real places and landmarks (e.g., the Obelisco) stay as written.
-- Everything must be consistent: lighting matches the time of day in "scene"; nothing in "constraints" contradicts the other fields.
+- Everything must be consistent: lighting matches the time of day in "scene"; "constraints" never contradicts the premise or other fields (never "no exaggeration" for a fantastical premise, never "no music" when music is set).
 - LOCAL OBJECTS: video models do not know Argentine objects. Never write just their name; describe the object AND how it is physically used, in English. Examples: mate → "a hollow gourd with a metal straw (bombilla), sipped through the straw, never drunk like a cup"; termo → "a tall thermos pouring hot water into the gourd"; asado → "meat grilling on an open parrilla grill over embers"; colectivo → "a colorful Buenos Aires city bus"; dulce de leche → "thick caramel spread"; alfajor → "a round cookie sandwich filled with caramel".
 - NON-HUMAN CHARACTERS (animals, creatures, dragons, monsters, living objects): they never do fine hand work (grabbing, pouring, holding tools). They act with snout, mouth, head, paws on the ground or the whole body, or the shot shows the result already done. Keep their anatomy natural: no human hands, no extra limbs.
 - OBJECT CONTINUITY: every object keeps one consistent state for the whole clip (where it is, who holds it). Never make an object appear, disappear or "enter the frame" if it is already in the scene. The ending continues the action; it never re-introduces something already present.
@@ -38,13 +47,13 @@ const FIELD_RULES: Record<string, string> = {
   sfx: 'English. Two or three sounds tied to their source, including any animal, creature or machine vocal sounds (roars, growls, purrs). NEVER repeat a sound already in ambience. Max 15 words.',
   music: 'English. One style, instruments, tempo, energy. Max 15 words.',
   dialogue:
-    'Brief language. HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
+    'Spoken words WRITTEN in the brief\'s language (Spanish brief → Spanish words). HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
   ending: 'English. ONE visual beat that closes the clip. Max 12 words.',
   shot_list:
     'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. If the character is an animal or creature: it NEVER holds, grabs, pours or uses paws like hands; it acts with snout, mouth, head or body, or the result is shown already done. Otherwise empty string.',
   on_screen_text:
     'EMPTY STRING unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
-  constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid.',
+  constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid. Never contradicts the premise or other fields.',
 };
 
 function fieldToJsonSchema(field: Field): Record<string, unknown> {
@@ -80,7 +89,8 @@ function buildTool(schema: ModelSchema) {
   const properties: Record<string, unknown> = {
     explanation: {
       type: 'string',
-      description: 'One short sentence in the language of the brief describing the creative idea.',
+      description:
+        'Starts with "IDEA: " — the creative twist in one punchy line, in the language of the brief (max 25 words). Mention any character swap after it.',
     },
   };
   for (const field of creative) properties[field.name] = fieldToJsonSchema(field);
@@ -175,7 +185,7 @@ function buildUserMessage(
   const animalNote = BRIEF_NON_HUMAN.test(brief)
     ? '\n\nANIMAL / CREATURE IN THIS BRIEF: it must never hold, grab, pour or use its paws like hands. Show its talent with the snout, mouth, head or body, or show the result already done (e.g., it sits proudly next to the finished work). Keep natural anatomy.'
     : '';
-  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). No alternatives.${multishotInstructions(schema, settings)}${animalNote}`;
+  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. First find the twist (IDEA). Field values in English (dialogue written in the brief's language). No alternatives.${multishotInstructions(schema, settings)}${animalNote}`;
   if (!variationOf || typeof variationOf !== 'object') return base;
 
   const takeA = Object.fromEntries(
