@@ -106,19 +106,37 @@ const parseSeconds = (value: unknown, fallback: number): number => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
-/** Splits the shot list into clean lines, dropping any "Shot 1:" / "1." prefix the user or assistant wrote. */
-const parseShotList = (raw: string): string[] =>
-  raw
-    .replace(/\\n/g, '\n')
-    .split('\n')
-    .map((line) =>
-      line
-        .trim()
-        .replace(/^(shot|plano|toma)\s*\d+\s*(\[[^\]]*\])?\s*[:.\-–]\s*/i, '')
-        .replace(/^\d+\s*[.)\-–]\s*/, '')
-        .trim(),
-    )
-    .filter(Boolean);
+/** Words a shot description usually starts with (shot size or framing). */
+const SHOT_START =
+  /(?:extreme\s+)?(?:wide|medium|close|full|long|establishing|over[- ]the[- ]shoulder|aerial|bird'?s[- ]eye|low[- ]angle|high[- ]angle|tracking|insert|macro|two[- ]shot|pov|top[- ]down|overhead)\b/i;
+
+/** Removes "Shot 1:" / "1." style prefixes. */
+const cleanShot = (line: string): string =>
+  line
+    .trim()
+    .replace(/^(shot|plano|toma)\s*\d+\s*(\[[^\]]*\])?\s*[:.\-–]\s*/i, '')
+    .replace(/^\d+\s*[.)\-–]\s*/, '')
+    .trim();
+
+/**
+ * Splits the shot list into shots. Accepts one shot per line, and also the
+ * case where the assistant wrote every shot in a single paragraph: then it
+ * cuts before each sentence that starts with a shot size ("Medium shot, ...").
+ */
+const parseShotList = (raw: string): string[] => {
+  const text = raw.replace(/\\n/g, '\n').trim();
+  if (!text) return [];
+
+  let parts = text.split('\n').map(cleanShot).filter(Boolean);
+
+  if (parts.length < 2) {
+    parts = text
+      .split(new RegExp(`(?<=[.!?;])\\s+(?=${SHOT_START.source})`, 'i'))
+      .map(cleanShot)
+      .filter(Boolean);
+  }
+  return parts;
+};
 
 /**
  * Builds "Shot 1 [0-5s]: ..." lines with even, contiguous integer timecodes
