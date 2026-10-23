@@ -28,7 +28,7 @@ DIRECTION — a single short clip, premium commercial quality:
 /** Per-field direction, keyed by field name. Applied on top of the schema description. */
 const FIELD_RULES: Record<string, string> = {
   subject: 'English. Who or what is on screen, nothing else. Max 15 words.',
-  action: 'English. ONE action beat, present tense. Max 15 words. No sequence of events.',
+  action: 'English. ONE action beat, present tense. Max 15 words. No sequence of events. If the character is an animal or creature: it NEVER holds, grabs, pours or uses paws like hands; it acts with snout, mouth, head or body, or the result is shown already done.',
   camera: 'English. Exactly one shot: shot size + one movement + angle. Max 12 words. Example format: "slow push-in, medium close-up, eye level".',
   scene: 'English. One specific location + atmosphere + time of day. Max 20 words. No alternatives.',
   lighting: 'English. Light source, quality and color, consistent with the time of day in scene. Max 15 words.',
@@ -40,7 +40,7 @@ const FIELD_RULES: Record<string, string> = {
     'Brief language. HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
   ending: 'English. ONE visual beat that closes the clip. Max 12 words.',
   shot_list:
-    'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. Otherwise empty string.',
+    'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. If the character is an animal or creature: it NEVER holds, grabs, pours or uses paws like hands; it acts with snout, mouth, head or body, or the result is shown already done. Otherwise empty string.',
   on_screen_text:
     'EMPTY STRING unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
   constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid.',
@@ -161,13 +161,20 @@ MULTI-SHOT SPOT: ${shots} shots in one ${seconds}-second clip (about ${Math.roun
 - Sound and music are written once for the whole clip.`;
 }
 
+/** Spanish + English animal/creature words, to detect them in the user's brief. */
+const BRIEF_NON_HUMAN =
+  /\b(perr[oa]s?|cachorr[oa]s?|gat[oa]s?|pájar[oa]s?|pajar[oa]s?|palomas?|loros?|búhos?|patos?|gallinas?|gallos?|pingüinos?|caballos?|vacas?|toros?|cerdos?|chanchos?|ovejas?|cabras?|llamas?|zorr[oa]s?|lob[oa]s?|osos?|leones?|tigres?|elefantes?|jirafas?|conejos?|ratones?|ratas?|ranas?|tortugas?|ballenas?|delfines?|peces|pez|tiburones?|pulpos?|dragones?|dragón|dinosaurios?|monstruos?|criaturas?|bestias?|unicornios?|animales?|dogs?|cats?|birds?|pigeons?|horses?|dragons?|monsters?|creatures?|animals?)\b/i;
+
 function buildUserMessage(
   brief: string,
   schema: ModelSchema,
   variationOf?: Record<string, unknown>,
   settings?: ClipSettings,
 ): string {
-  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). No alternatives.${multishotInstructions(schema, settings)}`;
+  const animalNote = BRIEF_NON_HUMAN.test(brief)
+    ? '\n\nANIMAL / CREATURE IN THIS BRIEF: it must never hold, grab, pour or use its paws like hands. Show its talent with the snout, mouth, head or body, or show the result already done (e.g., it sits proudly next to the finished work). Keep natural anatomy.'
+    : '';
+  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. Field values in English (dialogue in the brief's language). No alternatives.${multishotInstructions(schema, settings)}${animalNote}`;
   if (!variationOf || typeof variationOf !== 'object') return base;
 
   const takeA = Object.fromEntries(
