@@ -246,6 +246,31 @@ const NON_HUMAN =
 
 const ANATOMY_GUARD = 'human hands on animals or creatures, extra limbs, morphing anatomy';
 
+/** Soft "realism" words that water down an exaggerated or fantastical premise. */
+const SOFTENERS = /exaggerat|grounded|realistic|realism|subtle|natural|understated|keep it|minimal|calm|toned?[ -]down|over-the-top|dramatic|fantas|surreal/i;
+
+/**
+ * "Avoid" keeps only a comma list of things to avoid: no extra sentences, no
+ * "keep it grounded" rules that contradict the premise, no double negatives.
+ */
+function cleanConstraints(raw: string): string {
+  const firstSentence = raw.split(/(?<=[a-z0-9)])\.\s+|;|\n/i)[0] ?? '';
+  const items = firstSentence
+    .split(',')
+    .map((i) => i.trim().replace(/^(no|avoid|never)\s+/i, '').replace(/[.\s]+$/, ''))
+    .filter((i) => i && !SOFTENERS.test(i));
+  const base = ['subtitles', 'captions', 'watermark'];
+  const extra = items.filter((i) => !base.includes(i.toLowerCase()));
+  return [...base, ...extra].slice(0, 9).join(', ');
+}
+
+/** Mate is sipped through the bombilla — never raised to the lips like a cup. */
+function fixMateSip(text: string): string {
+  return text
+    .replace(/\b(raises|lifts|brings|tilts)\s+(the\s+)?(mate|gourd)(\s+gourd)?\s+to\s+(his|her|their)?\s*(lips|mouth)\b/gi, 'sips the mate through the metal straw')
+    .replace(/\bdrinks\s+(from\s+)?(the\s+)?(mate|gourd)\b/gi, 'sips the mate through the metal straw');
+}
+
 /** Appends the anatomy guard to "constraints" when any visual field features a non-human character. */
 function addAnatomyGuard(fields: Record<string, any>): void {
   const visual = ['subject', 'action', 'scene', 'shot_list', 'ending']
@@ -336,7 +361,13 @@ export async function POST(req: NextRequest) {
     for (const [key, value] of Object.entries(clean)) {
       if (typeof value === 'string' && key !== 'on_screen_text') clean[key] = replaceProtected(value);
     }
+    if (modelSchema.tab === 'video') {
+      for (const key of ['action', 'shot_list', 'ending']) {
+        if (typeof clean[key] === 'string') clean[key] = fixMateSip(clean[key]);
+      }
+    }
     if (modelSchema.tab === 'video' && modelSchema.fields.some((f) => f.name === 'constraints')) {
+      if (typeof clean.constraints === 'string') clean.constraints = cleanConstraints(clean.constraints);
       addAnatomyGuard(clean);
     }
     // Hard guard: no on-screen text unless the brief asks for it (models render any text they get).
