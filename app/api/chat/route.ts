@@ -47,12 +47,12 @@ const FIELD_RULES: Record<string, string> = {
   sfx: 'English. Two or three sounds tied to their source, including any animal, creature or machine vocal sounds (roars, growls, purrs). NEVER repeat a sound already in ambience. Max 15 words.',
   music: 'English. One style, instruments, tempo, energy. Max 15 words.',
   dialogue:
-    'Spoken words WRITTEN in the brief\'s language (Spanish brief → Spanish words). HUMAN SPEECH ONLY — empty string when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
+    'Spoken words WRITTEN in the brief\'s language (Spanish brief → Spanish words). HUMAN SPEECH ONLY — leave it blank ("") when no person on screen speaks. Animals, creatures and machines never go here (their sounds go in sfx). At most ONE line, spoken by a person who is on screen. Format: "Speaker, delivery: spoken words". No quotation marks. Max 8 spoken words.',
   ending: 'English. ONE visual beat that closes the clip. Max 12 words.',
   shot_list:
-    'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. If the character is an animal or creature: it NEVER holds, grabs, pours or uses paws like hands; it acts with snout, mouth, head or body, or the result is shown already done. Otherwise empty string.',
+    'English. ONLY when the request says MULTI-SHOT: exactly the requested number of lines, one per shot, separated by newlines. Each line: "<shot size + one camera move>, <one action>". No "Shot 1" prefix, no timecodes. Max 20 words per line. If the character is an animal or creature: it NEVER holds, grabs, pours or uses paws like hands; it acts with snout, mouth, head or body, or the result is shown already done. Otherwise leave it blank ("").',
   on_screen_text:
-    'EMPTY STRING unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
+    'Leave it BLANK ("") unless the brief explicitly asks for a slogan, tagline, brand name, title or text on screen. Never turn an adjective or idea from the brief into on-screen text. If asked: 2–3 words, prefer words without accents or special characters.',
   constraints: 'English. Always starts with "subtitles, captions, watermark", plus anything specific to avoid. Never contradicts the premise or other fields.',
 };
 
@@ -135,6 +135,9 @@ function sanitizeFields(raw: Record<string, unknown>, schema: ModelSchema): Reco
       continue;
     }
     let text = typeof value === 'string' ? value.trim() : String(value);
+    // Models sometimes write the placeholder itself ("Empty string") — it would render on screen.
+    if (/^[\s"'“”]*$/.test(text)) text = '';
+    if (/^[\s"'“”(]*(empty( string)?|blank|none|n\/?a|null|nil|vac[ií]o|ninguno|sin texto|no text|-+|—)[\s"'“”).]*$/i.test(text)) text = '';
     if (key === 'dialogue') {
       // Hard limit: one spoken line. The clip is short and only on-screen speakers lip-sync reliably.
       text = text
@@ -160,7 +163,7 @@ function multishotInstructions(schema: ModelSchema, settings?: ClipSettings): st
   if (!schema.fields.some((f) => f.name === 'shot_list')) return '';
   const shots = Math.min(3, Math.max(1, parseInt(String(settings?.shots ?? '1'), 10) || 1));
   const seconds = parseInt(String(settings?.duration ?? ''), 10) || 15;
-  if (shots < 2) return '\n\nSINGLE SHOT: leave "shot_list" as an empty string.';
+  if (shots < 2) return '\n\nSINGLE SHOT: leave "shot_list" blank ("").';
   return `
 
 MULTI-SHOT SPOT: ${shots} shots in one ${seconds}-second clip (about ${Math.round(seconds / shots)} s each).
@@ -168,7 +171,7 @@ MULTI-SHOT SPOT: ${shots} shots in one ${seconds}-second clip (about ${Math.roun
 - Build a mini story arc: shot 1 hooks and sets the world, ${shots === 3 ? 'shot 2 develops the action, shot 3' : 'shot 2'} is the payoff (the emotion, product or punchline the brief is about).
 - Same subject, place and look across all shots: continuity matters.
 - Each shot: one shot size + one camera move + one action. Vary shot sizes between shots (wide → medium → close-up, or similar).
-- "camera" and "action" describe shot 1 only. Leave "ending" as an empty string (the last shot is the ending).
+- "camera" and "action" describe shot 1 only. Leave "ending" blank ("") (the last shot is the ending).
 - Sound and music are written once for the whole clip.`;
 }
 

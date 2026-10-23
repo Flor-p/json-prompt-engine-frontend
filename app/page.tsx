@@ -280,7 +280,7 @@ export default function Home() {
       />
 
       <footer className="font-mono text-xs py-4 text-center text-black dark:text-[#FEFF00]">
-        JSON Prompt Engine v1.3.0 · Built by Flor Paramidani ·{' '}
+        JSON Prompt Engine v1.3.1 · Built by Flor Paramidani ·{' '}
         <a
           href="https://www.linkedin.com/in/florpara/"
           target="_blank"
