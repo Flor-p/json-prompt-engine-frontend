@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Field, ModelSchema } from '@/config/modelSchemas';
 
 const ANTHROPIC_TIMEOUT_MS = 20_000;
+/** Vision requests take longer: the image is tokenized before generation starts. */
+const ANTHROPIC_TIMEOUT_WITH_IMAGE_MS = 35_000;
+const IMAGE_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+type ImageMediaType = (typeof IMAGE_MEDIA_TYPES)[number];
+/** Base64 length cap (~3.4 MB decoded). The client sends ~300 KB; this only blocks abuse. */
+const MAX_IMAGE_BASE64_LENGTH = 4_500_000;
 const MODEL = 'claude-haiku-4-5-20251001';
 const TOOL_NAME = 'fill_prompt_fields';
 
@@ -33,7 +39,15 @@ DIRECTION — a single short clip, premium commercial quality:
 - LOCAL OBJECTS: video models do not know Argentine objects. Never write just their name; describe the object AND how it is physically used, in English. Examples: mate → "a hollow gourd with a metal straw (bombilla), sipped through the straw, never drunk like a cup"; termo → "a tall thermos pouring hot water into the gourd"; asado → "meat grilling on an open parrilla grill over embers"; colectivo → "a colorful Buenos Aires city bus"; dulce de leche → "thick caramel spread"; alfajor → "a round cookie sandwich filled with caramel".
 - NON-HUMAN CHARACTERS (animals, creatures, dragons, monsters, living objects): they never do fine hand work (grabbing, pouring, holding tools). They act with snout, mouth, head, paws on the ground or the whole body, or the shot shows the result already done. Keep their anatomy natural: no human hands, no extra limbs.
 - OBJECT CONTINUITY: every object keeps one consistent state for the whole clip (where it is, who holds it). Never make an object appear, disappear or "enter the frame" if it is already in the scene. The ending continues the action; it never re-introduces something already present.
-- Do not repeat information across fields.`;
+- Do not repeat information across fields.
+
+REFERENCE IMAGE — only when the user attaches an image:
+- The target model never sees the image. Translate it into words inside the fields: subject's look and wardrobe, materials, color palette, composition and framing, lens feel, lighting, style. Be concrete and visual.
+- With a written brief: the brief decides WHAT happens; the image is the visual reference (subject, look, palette, style). If the brief says to take only part of it ("only the style", "only the character", "solo la paleta"), use only that part.
+- Without a written brief: the image IS the brief. Recreate it faithfully as the prompt; for video, animate it with ONE natural action that fits what is in the image. Skip the creative twist: "explanation" starts with "IDEA: " and describes the image in one line, in Spanish.
+- People in the image: describe only what is visible (approximate age, hair, clothing, expression, pose). Never name or guess who they are, even if they look famous.
+- Text visible in the image goes in "on_screen_text" only if the brief asks for it.
+- The protected-characters and moderation rules also apply to what you see in the image.`;
 
 /** Per-field direction, keyed by field name. Applied on top of the schema description. */
 const FIELD_RULES: Record<string, string> = {
@@ -184,11 +198,21 @@ function buildUserMessage(
   schema: ModelSchema,
   variationOf?: Record<string, unknown>,
   settings?: ClipSettings,
+  hasImage = false,
 ): string {
   const animalNote = BRIEF_NON_HUMAN.test(brief)
     ? '\n\nANIMAL / CREATURE IN THIS BRIEF: it must never hold, grab, pour or use its paws like hands. Show its talent with the snout, mouth, head or body, or show the result already done (e.g., it sits proudly next to the finished work). Keep natural anatomy.'
     : '';
-  const base = `Brief: ${brief}\n\nTarget model: ${schema.name}. First find the twist (IDEA). Field values in English (dialogue written in the brief's language). No alternatives.${multishotInstructions(schema, settings)}${animalNote}`;
+  const briefLine = brief
+    ? `Brief: ${brief}`
+    : 'Brief: none written. The attached image IS the brief: turn it into the prompt.';
+  const imageNote = hasImage
+    ? brief
+      ? '\n\nREFERENCE IMAGE ATTACHED: use it as the visual reference for this brief and describe what you take from it in words (the target model cannot see it).'
+      : '\n\nREFERENCE IMAGE ATTACHED: recreate it faithfully in words (the target model cannot see it).'
+    : '';
+  const ideaStep = hasImage && !brief ? 'Describe the image (IDEA).' : 'First find the twist (IDEA).';
+  const base = `${briefLine}\n\nTarget model: ${schema.name}. ${ideaStep} Field values in English (dialogue written in the brief's language). No alternatives.${imageNote}${multishotInstructions(schema, settings)}${animalNote}`;
   if (!variationOf || typeof variationOf !== 'object') return base;
 
   const takeA = Object.fromEntries(
@@ -294,6 +318,25 @@ function addAnatomyGuard(fields: Record<string, any>): void {
   fields.constraints = current ? `${current.replace(/[.;,\s]+$/, '')}, ${ANATOMY_GUARD}` : ANATOMY_GUARD;
 }
 
+interface ImageInput {
+  mediaType: ImageMediaType;
+  data: string;
+}
+
+/** Validates the optional reference image. Returns null when absent, or an error string when invalid. */
+function parseImage(raw: unknown): ImageInput | null | string {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object') return 'Invalid image';
+  const { mediaType, data } = raw as { mediaType?: unknown; data?: unknown };
+  if (typeof mediaType !== 'string' || !IMAGE_MEDIA_TYPES.includes(mediaType as ImageMediaType)) {
+    return 'Unsupported image type. Use JPG, PNG, WebP or GIF.';
+  }
+  if (typeof data !== 'string' || !data) return 'Invalid image';
+  if (data.length > MAX_IMAGE_BASE64_LENGTH) return 'Image is too large.';
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) return 'Invalid image encoding';
+  return { mediaType: mediaType as ImageMediaType, data };
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI assistant is not configured' }, { status: 500 });
@@ -307,6 +350,8 @@ export async function POST(req: NextRequest) {
     variationOf?: Record<string, unknown>;
     /** Technical settings the prompt must be written for (shot count, duration). */
     settings?: ClipSettings;
+    /** Optional reference image (base64, no data-URL prefix). */
+    image?: unknown;
   };
   try {
     body = await req.json();
@@ -314,8 +359,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { message, modelSchema, variationOf, settings } = body;
-  if (!message?.trim()) {
+  const { modelSchema, variationOf, settings } = body;
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  const image = parseImage(body.image);
+  if (typeof image === 'string') {
+    return NextResponse.json({ error: image }, { status: 400 });
+  }
+  if (!message && !image) {
     return NextResponse.json({ error: 'Empty message' }, { status: 400 });
   }
   if (!modelSchema?.fields?.length) {
@@ -323,8 +373,19 @@ export async function POST(req: NextRequest) {
   }
 
   const tool = buildTool(modelSchema);
+  const userText = buildUserMessage(message, modelSchema, variationOf, settings, Boolean(image));
+  // Image first, then text: Claude follows instructions about an image better when it comes before them.
+  const userContent = image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } },
+        { type: 'text', text: userText },
+      ]
+    : userText;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    image ? ANTHROPIC_TIMEOUT_WITH_IMAGE_MS : ANTHROPIC_TIMEOUT_MS,
+  );
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -344,7 +405,7 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'user',
-            content: buildUserMessage(message.trim(), modelSchema, variationOf, settings),
+            content: userContent,
           },
         ],
       }),
