@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, Copy, Shuffle, Trash2, ImagePlus, Loader2 } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Copy, Shuffle, Trash2, ImagePlus, Loader2, ScanEye } from 'lucide-react';
 import { toast } from 'sonner';
 import { ModelSchema } from '@/config/modelSchemas';
 import { transformData } from '@/lib/transformers';
@@ -18,6 +18,8 @@ interface Message {
   /** Reference image sent with the brief — shown in the bubble and reused for take B. */
   image?: ImageAttachment;
   take?: Take;
+  /** Plain-text answer of "Describe" mode, copyable as is. */
+  description?: string;
 }
 
 interface PromptChatbotProps {
@@ -155,6 +157,50 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
     await requestFields(brief, 'A', refImage);
   };
 
+  /** Readable Spanish description of the attached image, without touching the prompt fields. */
+  const describeImage = async () => {
+    if (!image || isLoading || isPreparingImage) return;
+    const note = input.trim();
+    const refImage = image;
+    const session = sessionRef.current;
+    setInput('');
+    setImage(null);
+    setMessages((prev) => [...prev, { role: 'user', content: note || 'Describe this image', image: refImage }]);
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'describe',
+          message: note,
+          image: { mediaType: refImage.mediaType, data: refImage.data },
+        }),
+      });
+      const data = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
+      if (session !== sessionRef.current) return;
+      if (data.error) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
+        return;
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.description, description: data.description }]);
+    } catch {
+      if (session !== sessionRef.current) return;
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection failed. Try again.' }]);
+    } finally {
+      if (session === sessionRef.current) setIsLoading(false);
+    }
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Description copied');
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
   const requestTakeB = async (msg: Message) => {
     if (msg.brief === undefined || !msg.fields || isLoading) return;
     await requestFields(msg.brief, 'B', msg.image, msg.fields);
@@ -287,13 +333,25 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
                 )}
                 {(msg.content || msg.role === 'assistant') && (
                   <div
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                    className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-zinc-700 text-zinc-200'
                         : 'bg-zinc-800 text-zinc-200'
                     }`}
                   >
                     {msg.content}
+                  </div>
+                )}
+                {msg.role === 'assistant' && msg.description && (
+                  <div className="ml-1 flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => copyText(msg.description!)}
+                      className="flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold text-zinc-900 transition-opacity hover:opacity-80 active:scale-95"
+                      style={{ backgroundColor: '#FEFF00' }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy description
+                    </button>
                   </div>
                 )}
                 {msg.role === 'assistant' && msg.fields && (
@@ -376,9 +434,22 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
                     <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
                   </div>
                 )}
-                <span className="text-[11px] text-zinc-500">
-                  {input.trim() ? 'Image used as reference' : 'Image only: it becomes the prompt'}
-                </span>
+                <div className="flex flex-col items-start gap-1">
+                  <span className="text-[11px] text-zinc-500">
+                    {input.trim() ? 'Send: image used as reference' : 'Send: image becomes the prompt'}
+                  </span>
+                  {image && (
+                    <button
+                      onClick={describeImage}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 rounded-md border border-zinc-600 px-2 py-0.5 text-[11px] font-medium text-zinc-200 transition-colors hover:border-zinc-400 disabled:opacity-40"
+                      title="Get a readable description of the image (in Spanish)"
+                    >
+                      <ScanEye className="h-3 w-3" />
+                      Describe
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             <input

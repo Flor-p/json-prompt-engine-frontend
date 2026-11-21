@@ -318,6 +318,25 @@ function addAnatomyGuard(fields: Record<string, any>): void {
   fields.constraints = current ? `${current.replace(/[.;,\s]+$/, '')}, ${ANATOMY_GUARD}` : ANATOMY_GUARD;
 }
 
+/** "Describe" mode: a readable Spanish description of the reference image, no prompt fields. */
+const DESCRIBE_PROMPT = `Sos director de arte y prompt engineer. Describís imágenes de referencia para que alguien arme un prompt de IA de imagen o video.
+
+Respondé SIEMPRE en español, en este formato exacto (una línea por ítem, sin introducción ni cierre):
+Sujeto: quién o qué aparece, rasgos visibles, edad aproximada.
+Vestuario y detalles: ropa, accesorios, materiales, texturas.
+Pose y expresión: postura, gesto, mirada.
+Entorno: lugar, fondo, objetos.
+Encuadre: plano, ángulo, composición, lente aparente.
+Luz: fuente, dirección, calidad, contraste.
+Paleta: colores dominantes y acentos.
+Estilo: técnica (foto, 3D, ilustración…), look, época, grano, gradación.
+Prompt base (EN): una frase en inglés, máximo 40 palabras, lista para pegar.
+
+Reglas:
+- Solo lo que se ve. Concreto y visual, sin interpretaciones poéticas.
+- Personas: describí solo su apariencia visible. Nunca las nombres ni adivines quiénes son, aunque parezcan famosas.
+- Si un ítem no aplica, escribí "—".`;
+
 interface ImageInput {
   mediaType: ImageMediaType;
   data: string;
@@ -337,6 +356,63 @@ function parseImage(raw: unknown): ImageInput | null | string {
   return { mediaType: mediaType as ImageMediaType, data };
 }
 
+async function describeImage(image: ImageInput, note: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_WITH_IMAGE_MS);
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY as string,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 800,
+        system: DESCRIBE_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } },
+              {
+                type: 'text',
+                text: note ? `Describí esta imagen. Prestá especial atención a: ${note}` : 'Describí esta imagen.',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Anthropic API error (describe)', response.status, await response.text());
+      return NextResponse.json({ error: `AI service error (${response.status}).` }, { status: 502 });
+    }
+
+    const data = await response.json();
+    const description = (data.content ?? [])
+      .filter((block: { type: string }) => block.type === 'text')
+      .map((block: { text?: string }) => block.text ?? '')
+      .join('\n')
+      .trim();
+    if (!description) {
+      return NextResponse.json({ error: 'AI returned no description. Try again.' }, { status: 502 });
+    }
+    return NextResponse.json({ description });
+  } catch (error) {
+    const aborted = error instanceof Error && error.name === 'AbortError';
+    return NextResponse.json(
+      { error: aborted ? 'AI assistant timed out.' : 'AI assistant unavailable.' },
+      { status: aborted ? 504 : 500 },
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'AI assistant is not configured' }, { status: 500 });
@@ -352,6 +428,8 @@ export async function POST(req: NextRequest) {
     settings?: ClipSettings;
     /** Optional reference image (base64, no data-URL prefix). */
     image?: unknown;
+    /** "describe": return a Spanish description of the image instead of prompt fields. */
+    mode?: string;
   };
   try {
     body = await req.json();
@@ -364,6 +442,10 @@ export async function POST(req: NextRequest) {
   const image = parseImage(body.image);
   if (typeof image === 'string') {
     return NextResponse.json({ error: image }, { status: 400 });
+  }
+  if (body.mode === 'describe') {
+    if (!image) return NextResponse.json({ error: 'Attach an image to describe' }, { status: 400 });
+    return describeImage(image, message);
   }
   if (!message && !image) {
     return NextResponse.json({ error: 'Empty message' }, { status: 400 });
