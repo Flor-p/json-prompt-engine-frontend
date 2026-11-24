@@ -20,6 +20,8 @@ interface Message {
   take?: Take;
   /** Plain-text answer of "Describe" mode, copyable as is. */
   description?: string;
+  /** The brief is a Describe result: the prompt recreates the image faithfully (no creative twist). */
+  fromDescription?: boolean;
 }
 
 interface PromptChatbotProps {
@@ -101,6 +103,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
     take: Take,
     refImage?: ImageAttachment,
     variationOf?: Record<string, any>,
+    fromDescription = false,
   ) => {
     const session = sessionRef.current;
     setIsLoading(true);
@@ -115,6 +118,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
           settings: { shots: currentData.shots, duration: currentData.duration },
           ...(refImage ? { image: { mediaType: refImage.mediaType, data: refImage.data } } : {}),
           ...(variationOf ? { variationOf } : {}),
+          ...(fromDescription ? { fromDescription: true } : {}),
         }),
       });
 
@@ -137,6 +141,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
           brief,
           image: refImage,
           take,
+          fromDescription,
         },
       ]);
     } catch {
@@ -183,13 +188,23 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
         setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${data.error}` }]);
         return;
       }
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.description, description: data.description }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.description, description: data.description, image: refImage },
+      ]);
     } catch {
       if (session !== sessionRef.current) return;
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Connection failed. Try again.' }]);
     } finally {
       if (session === sessionRef.current) setIsLoading(false);
     }
+  };
+
+  /** Turns a Describe result into prompt fields, keeping the image so the result stays faithful to it. */
+  const promptFromDescription = async (msg: Message) => {
+    if (!msg.description || isLoading) return;
+    setMessages((prev) => [...prev, { role: 'user', content: 'Generate prompt from this description' }]);
+    await requestFields(msg.description, 'A', msg.image, undefined, true);
   };
 
   const copyText = async (text: string) => {
@@ -203,7 +218,7 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
 
   const requestTakeB = async (msg: Message) => {
     if (msg.brief === undefined || !msg.fields || isLoading) return;
-    await requestFields(msg.brief, 'B', msg.image, msg.fields);
+    await requestFields(msg.brief, 'B', msg.image, msg.fields, msg.fromDescription);
   };
 
   /** Builds the final prompt for a take without touching the form, and copies it. */
@@ -345,9 +360,17 @@ export function PromptChatbot({ activeModel, currentModelSchema, currentData, on
                 {msg.role === 'assistant' && msg.description && (
                   <div className="ml-1 flex flex-wrap gap-1.5">
                     <button
-                      onClick={() => copyText(msg.description!)}
-                      className="flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold text-zinc-900 transition-opacity hover:opacity-80 active:scale-95"
+                      onClick={() => promptFromDescription(msg)}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 rounded-md px-3 py-1 text-xs font-semibold text-zinc-900 transition-opacity hover:opacity-80 active:scale-95 disabled:opacity-40"
                       style={{ backgroundColor: '#FEFF00' }}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Generate prompt
+                    </button>
+                    <button
+                      onClick={() => copyText(msg.description!)}
+                      className="flex items-center gap-1 rounded-md border border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-200 transition-colors hover:border-zinc-400 active:scale-95"
                     >
                       <Copy className="h-3 w-3" />
                       Copy description

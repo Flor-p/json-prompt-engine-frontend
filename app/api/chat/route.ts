@@ -199,19 +199,25 @@ function buildUserMessage(
   variationOf?: Record<string, unknown>,
   settings?: ClipSettings,
   hasImage = false,
+  fromDescription = false,
 ): string {
   const animalNote = BRIEF_NON_HUMAN.test(brief)
     ? '\n\nANIMAL / CREATURE IN THIS BRIEF: it must never hold, grab, pour or use its paws like hands. Show its talent with the snout, mouth, head or body, or show the result already done (e.g., it sits proudly next to the finished work). Keep natural anatomy.'
     : '';
-  const briefLine = brief
-    ? `Brief: ${brief}`
-    : 'Brief: none written. The attached image IS the brief: turn it into the prompt.';
-  const imageNote = hasImage
+  const briefLine = fromDescription
+    ? `Reference description (written from the attached image):\n${brief}`
+    : brief
+      ? `Brief: ${brief}`
+      : 'Brief: none written. The attached image IS the brief: turn it into the prompt.';
+  const imageNote = fromDescription
+    ? `\n\nFAITHFUL RECREATION: turn the description${hasImage ? ' and the attached image' : ''} into the prompt fields. Keep every detail it states (subject, wardrobe, pose, setting, framing, light, palette, style). No creative twist, invent nothing it does not state${hasImage ? '; use the image to resolve anything the description leaves vague' : ''}. For video, animate it with ONE natural action that fits the scene. "explanation" starts with "IDEA: " and summarizes the image in one line, in Spanish.`
+    : hasImage
     ? brief
       ? '\n\nREFERENCE IMAGE ATTACHED: use it as the visual reference for this brief and describe what you take from it in words (the target model cannot see it).'
       : '\n\nREFERENCE IMAGE ATTACHED: recreate it faithfully in words (the target model cannot see it).'
     : '';
-  const ideaStep = hasImage && !brief ? 'Describe the image (IDEA).' : 'First find the twist (IDEA).';
+  const ideaStep =
+    fromDescription || (hasImage && !brief) ? 'Summarize the image (IDEA).' : 'First find the twist (IDEA).';
   const base = `${briefLine}\n\nTarget model: ${schema.name}. ${ideaStep} Field values in English (dialogue written in the brief's language). No alternatives.${imageNote}${multishotInstructions(schema, settings)}${animalNote}`;
   if (!variationOf || typeof variationOf !== 'object') return base;
 
@@ -430,6 +436,8 @@ export async function POST(req: NextRequest) {
     image?: unknown;
     /** "describe": return a Spanish description of the image instead of prompt fields. */
     mode?: string;
+    /** The message is a Describe result: recreate it faithfully instead of finding a creative twist. */
+    fromDescription?: boolean;
   };
   try {
     body = await req.json();
@@ -455,7 +463,8 @@ export async function POST(req: NextRequest) {
   }
 
   const tool = buildTool(modelSchema);
-  const userText = buildUserMessage(message, modelSchema, variationOf, settings, Boolean(image));
+  const fromDescription = body.fromDescription === true && Boolean(message);
+  const userText = buildUserMessage(message, modelSchema, variationOf, settings, Boolean(image), fromDescription);
   // Image first, then text: Claude follows instructions about an image better when it comes before them.
   const userContent = image
     ? [
@@ -534,7 +543,8 @@ export async function POST(req: NextRequest) {
       addAnatomyGuard(clean);
     }
     // Hard guard: no on-screen text unless the brief asks for it (models render any text they get).
-    if (modelSchema.fields.some((f) => f.name === 'on_screen_text') && !briefAsksForText(message)) {
+    // A description lists what is visible ("logo", "cartel"…): that is not a request for on-screen text.
+    if (modelSchema.fields.some((f) => f.name === 'on_screen_text') && (fromDescription || !briefAsksForText(message))) {
       clean.on_screen_text = '';
     }
     return NextResponse.json({
